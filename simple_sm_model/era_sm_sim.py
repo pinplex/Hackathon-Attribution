@@ -13,7 +13,7 @@ from dask.diagnostics import ProgressBar
 from datetime import datetime
 
 
-def extract_data(target_file: str = './data/era5_40N6W.zarr'):
+def extract_data(target_file: str = './simple_sm_model/data/era5_40N6W.zarr'):
     paths = []
     for year in range(1980, 2021):
         for var in ['tp', 't2m', 'ssr']:
