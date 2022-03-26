@@ -39,7 +39,7 @@ def extract_data(target_file: str = './data/era5_40N6W.zarr'):
 
     encoding = {}
     for var in ['tp', 'sm', 'et']:
-        encoding.update({var: {'chunks': (1000,)}})
+        encoding.update({var: {'chunks': (5000,)}})
 
     with ProgressBar():
         era.to_zarr(target_file, encoding=encoding, mode='w')
