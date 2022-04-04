@@ -2,6 +2,7 @@
 """Pytorch data pipeline.
 
 Author: bkraft@bgc-jena.mpg.de
+        edited by awinkler@bgc-jena.mpg.de
 """
 
 import torch
@@ -19,6 +20,7 @@ class TSData(torch.utils.data.Dataset):
             time_slice: slice,
             return_seq: bool = False,
             ts_window_size: int = -1,
+            normalize: bool = True,
             norm_stats: dict[str, dict[str, float]] = {},
             dtype: str = 'float32') -> None:
 
@@ -51,6 +53,8 @@ class TSData(torch.utils.data.Dataset):
         ts_window_size: int (default is -1)
             The sequence window size, ignored if `return_seq=False`, else, it defines the sequence
             lengths of a samle.
+        normalize: bool (default is `True`)
+            Whether to normalize the data or not. 
         norm_stats: dict[str, xr.aAtaset],
             Normalization stats of format {'mean': xr.Dataset, 'st': xr.Dataset}. If not passed, the stats will be inferred from
             the input datasets 'ds'.
@@ -63,6 +67,7 @@ class TSData(torch.utils.data.Dataset):
         self.return_seq = return_seq
         self.ts_window_size = ts_window_size
         self.dtype = dtype
+        self.do_normalize = normalize
 
         self.ds = ds.sel(time=time_slice)
 
@@ -122,8 +127,9 @@ class TSData(torch.utils.data.Dataset):
                 self._raise_index_error(idx)
 
             sample = self.ds.isel(time=idx)
-
-        sample = self.normalize(sample)
+        
+        if self.do_normalize:
+            sample = self.normalize(sample)
 
         features = sample[self.features]
         targets = sample[self.targets]
