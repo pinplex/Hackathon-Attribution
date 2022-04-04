@@ -134,13 +134,13 @@ class TSData(torch.utils.data.Dataset):
         if len(keys) == 0:
             keys = self.features + self.targets
 
-        return (self.ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
+        return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
 
     def denormalize(self, ds: xr.Dataset, keys: list[str] = []) -> xr.Dataset:
         if len(keys) == 0:
             keys = self.features + self.targets
 
-        return self.ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
+        return ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
 
     def _get_norm_stats(self) -> xr.Dataset:
         norm_stats = {
