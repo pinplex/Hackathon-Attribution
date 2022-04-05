@@ -150,14 +150,14 @@ class TSData(torch.utils.data.Dataset):
 
     def denorm_np(self, x: ArrayLike, key: str):
         """Denormalize a numpy array.
-        
+
         Parameters
         ----------
         x: ArrayLike
             The numpy array, should only contain one varaible (`key`).
         key: str
             The name of the variable (must be present in `norm_stats`).
-        
+
         Returns
         -------
         The denormalized numpy array.
