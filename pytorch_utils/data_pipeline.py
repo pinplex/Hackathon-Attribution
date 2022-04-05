@@ -127,7 +127,7 @@ class TSData(torch.utils.data.Dataset):
                 self._raise_index_error(idx)
 
             sample = self.ds.isel(time=idx)
-        
+
         if self.do_normalize:
             sample = self.normalize(sample)
 
@@ -147,6 +147,22 @@ class TSData(torch.utils.data.Dataset):
             keys = self.features + self.targets
 
         return ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
+
+    def denorm_np(self, x: ArrayLike, key: str):
+        """Denormalize a numpy array.
+        
+        Parameters
+        ----------
+        x: ArrayLike
+            The numpy array, should only contain one varaible (`key`).
+        key: str
+            The name of the variable (must be present in `norm_stats`).
+        
+        Returns
+        -------
+        The denormalized numpy array.
+        """
+        return x * self.norm_stats['std'][key] + self.norm_stats['mean'][key]
 
     def _get_norm_stats(self) -> xr.Dataset:
         norm_stats = {
