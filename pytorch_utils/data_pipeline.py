@@ -162,7 +162,7 @@ class TSData(torch.utils.data.Dataset):
         -------
         The denormalized numpy array.
         """
-        return x * self.norm_stats['std'][key] + self.norm_stats['mean'][key]
+        return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
 
     def _get_norm_stats(self) -> xr.Dataset:
         norm_stats = {
