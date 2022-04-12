@@ -21,6 +21,7 @@ class TSData(torch.utils.data.Dataset):
             return_seq: bool = False,
             ts_window_size: int = -1,
             normalize: bool = True,
+            norm_kind: str = 'mean_std',
             norm_stats: dict[str, dict[str, float]] = {},
             dtype: str = 'float32') -> None:
 
@@ -54,7 +55,9 @@ class TSData(torch.utils.data.Dataset):
             The sequence window size, ignored if `return_seq=False`, else, it defines the sequence
             lengths of a samle.
         normalize: bool (default is `True`)
-            Whether to normalize the data or not. 
+            Whether to normalize the data or not.
+        norm_kind: str (default is `mean_std`)
+            Kind of normalization technique: 'mean_std' versus 'min_max'.
         norm_stats: dict[str, xr.aAtaset],
             Normalization stats of format {'mean': xr.Dataset, 'st': xr.Dataset}. If not passed, the stats will be inferred from
             the input datasets 'ds'.
@@ -68,6 +71,7 @@ class TSData(torch.utils.data.Dataset):
         self.ts_window_size = ts_window_size
         self.dtype = dtype
         self.do_normalize = normalize
+        self.norm_kind = norm_kind
 
         self.ds = ds.sel(time=time_slice)
 
@@ -139,8 +143,12 @@ class TSData(torch.utils.data.Dataset):
     def normalize(self, ds: xr.Dataset, keys: list[str] = []) -> xr.Dataset:
         if len(keys) == 0:
             keys = self.features + self.targets
-
-        return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
+                
+        if self.norm_kind == 'min_max':
+            return (ds[keys] - self.norm_stats['min'][keys]) / (self.norm_stats['max'][keys] - self.norm_stats['min'][keys])
+        
+        else: # mean_std
+            return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
 
     def denormalize(self, ds: xr.Dataset, keys: list[str] = []) -> xr.Dataset:
         if len(keys) == 0:
@@ -178,13 +186,26 @@ class TSData(torch.utils.data.Dataset):
         -------
         The denormalized numpy array.
         """
-        return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
+        
+        if self.norm_kind == 'min_max':
+            return x * (self.norm_stats['max'][keys].item() - self.norm_stats['min'][keys].item()) + self.norm_stats['min'][keys].item() 
+        
+        else: # mean_std
+            return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
 
     def _get_norm_stats(self) -> xr.Dataset:
-        norm_stats = {
-            'mean': self.ds[self.features + self.targets].mean().compute(),
-            'std': self.ds[self.features + self.targets].mean().compute(),
-        }
+        
+        if self.norm_kind == 'min_max':
+            norm_stats = {
+                'min': self.ds[self.features + self.targets].min().compute(),
+                'max': self.ds[self.features + self.targets].max().compute(),
+            }
+            
+        else: # mean_std
+            norm_stats = {
+                'mean': self.ds[self.features + self.targets].mean().compute(),
+                'std': self.ds[self.features + self.targets].mean().compute(),
+            }
 
         return norm_stats
 

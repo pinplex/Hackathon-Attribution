@@ -13,12 +13,21 @@ import matplotlib.pyplot as plt
 
 ## define model
 
-# Parameters for DBF (Deciduous Broadleaf Forest)
-epsilon_max = 0.001165 # KgC/m2/d/MJ max light-use efficiency
-Tmin_min = -6 # K
-Tmin_max = 9.94 # K
+## Parameters for DBF (Deciduous Broadleaf Forest)
+#LCT = 'DBF' # land cover type
+#epsilon_max = 0.001165 # KgC/m2/d/MJ max light-use efficiency
+#Tmin_min = -6 # K
+#Tmin_max = 9.94 # K
+#VPD_min = 650 # Pa
+#VPD_max = 1650 # Pa
+
+# Parameters for MF (Mixed Forest)
+LCT = 'MF' # land cover type
+epsilon_max = 0.001051 # KgC/m2/d/MJ max light-use efficiency
+Tmin_min = -7 # K
+Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
-VPD_max = 1650 # Pa
+VPD_max = 2400 # Pa
 
 #%%
 def VPD_scalar(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
@@ -86,12 +95,15 @@ FPAR = df['FPAR']
 df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR)
 df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR)
 df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR)
-df['GPP_constant-VPD'] = calc_GPP(Tmin, 1000, SWRad, FPAR)
+df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR)
+df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5)
+
 
 #%%make plot
-variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD']
-df['2016'][variables].plot(subplots=True, layout=(4,2), figsize=(14,10))
+variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 
+             'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-FPAR']
+df['2016'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
 plt.show()
 
 #%%save data to disk
-df.to_csv('data/predictor-variables+GPP_Jena.csv')
+df.to_csv('data/predictor-variables+GPP_Jena_'+LCT+'.csv')
