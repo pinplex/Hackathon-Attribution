@@ -10,17 +10,24 @@ Title: Simple script to process EAR5 and AHVRR Fpar to times series
 import xarray as xr
 import pandas as pd
 
-## Jena (Germany) coordinates
-#lon = 11.5892
-#lat = 50.9271
+## define location
+location = 'Jena' # 'next-to-Jena' 'Jena-USA'
 
-## next to Jena (Germany) coordinates
-lon = 11.5892 + 0.5
-lat = 50.9271 + 0.5
+if location == 'Jena-USA':
+    ## Jena (USA) coordinates
+    lat = 31.6953
+    lon = -92.1258
 
-## Jena (USA) coordinates
-#lat = 31.6953
-#lon = -92.1258
+elif location == 'next-to-Jena':
+    ## next to Jena (Germany) coordinates
+    lon = 11.5892 + 0.5
+    lat = 50.9271 + 0.5
+
+else: # Jena is default
+    ## Jena (Germany) coordinates
+    lon = 11.5892
+    lat = 50.9271
+
 
 ## ERA5 Met
 def obtain_ts(path, var): 
@@ -33,10 +40,12 @@ ERA5 = "/Net/Groups/data_BGC/era5/e1/0d25_daily/"
 
 ssrd = obtain_ts(ERA5, 'ssrd')
 t2mmin = obtain_ts(ERA5, 't2mmin')
+swvl1 = obtain_ts(ERA5, 'swvl1')
+swvl1 = vpd.rename({'swvl1': 'sSWC'}, axis=1) # surface soil water content
 vpd = obtain_ts(ERA5, 'vpd_daytime_mean')
 vpd = vpd.rename({'vpd_daytime_mean': 'vpd'}, axis=1)
 
-predictors = pd.concat([ssrd, t2mmin['t2mmin'], vpd['vpd']], axis=1)
+predictors = pd.concat([ssrd, t2mmin['t2mmin'], vpd['vpd'], swvl1['sSWC']], axis=1)
 predictors.index = pd.date_range(start='1982-01-01', periods=len(predictors), freq='1d')
 
 # harmonize units
@@ -51,4 +60,4 @@ fpar.index = pd.date_range(start='1982-01-15', periods=len(fpar), freq='1d')
 
 ## Combine and save to disk
 predictors = pd.concat([predictors, fpar['FPAR']], axis=1)
-predictors.to_csv('data/predictor-variables_next-to-Jena.csv')
+predictors.to_csv('data/predictor-variables_'+location+'.csv')
