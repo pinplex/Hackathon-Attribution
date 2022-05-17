@@ -71,6 +71,8 @@ lai = obtain_ts(CMIP6, 'lai', 'Eday') # Leaf area index
 # harmonize units
 tas['tas'] = tas['tas'] - 273.15 # K to Celsius
 tasmin['tasmin'] = tasmin['tasmin'] - 273.15 # K to Celsius
+rsds['rsds'] = rsds['rsds'] * 60 * 60 * 24 * 1e-6 # daily average W m-2 to cumulative MJ m-2
+mrsos['mrsos'] = mrsos['mrsos'] * 1e-2 # kg m-2 in top 10cm layer to m3 m-3
 
 # calculate VPD
 vpd = vapor_pressure_deficit(tas['tas'], hurs['hurs']) * 100 # hPa to Pa
@@ -82,6 +84,10 @@ fapar = fapar_from_lai(lai['lai'])
 predictors = pd.concat([rsds, mrso['mrso'], mrsos['mrsos'], tasmin['tasmin'], lai['lai']], axis=1)
 predictors['vpd'] = vpd
 predictors['fapar'] = fapar
+
+# rename variables to ERA5 terminology
+predictors = predictors.rename({'rsds': 'ssrd', 'mrso': 'SWC', 'mrsos': 'sSWC', 
+                                'tasmin': 't2mmin', 'fapar': 'FPAR'}, axis=1)
 
 # store to disk
 predictors.to_csv('data/predictor-variables_Jena_MPI-ESM1-2-LR_'+simulation+'.csv')
