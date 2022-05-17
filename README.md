@@ -3,6 +3,8 @@
 
 This repository contains code and data for the attribution hackathon.
 
+[This pad](https://pad.gwdg.de/YoDSoLPUQmaAgNcuw_vVAA#) contains more discussion and ideas.
+
 # Getting started
 
 1. [Install conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)

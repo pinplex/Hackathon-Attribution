@@ -119,33 +119,35 @@ def calc_GPP(Tmin, VPD, SWRad, FPAR, SWC):
 
     return epsilon_max * Tmin * VPD * APAR(SWRad,FPAR) * SWC * 1000 # GPP in gC m-2 day-1
 
-#%% read data
-df = pd.read_csv(infile, index_col=0, parse_dates=True)
+if __name__ == "__main__":
 
-## get predictor variables
-Tmin = df['t2mmin']
-VPD = df['vpd']
-SWRad = df['ssrd']
-FPAR = df['FPAR']
-
-# create fake SWC for now based on fpar signal and noise
-#@todo add real SWC
-#df['SWC'] = (df['FPAR'] + np.random.normal(loc=0, scale=0.1, size=len(df['FPAR']))) * 150
-SWC = df['sSWC']
-
-#%% calc GPP
-df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC)
-df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC)
-df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC)
-df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC)
-df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC)
-df['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 0.25)
-
-#%%make plot
-variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 
-             'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-SWC', 'GPP_constant-FPAR']
-df['2017'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
-plt.show()
-
-#%%save data to disk
-#df.to_csv(outfile)
+    #%% read data
+    df = pd.read_csv(infile, index_col=0, parse_dates=True)
+    
+    ## get predictor variables
+    Tmin = df['t2mmin']
+    VPD = df['vpd']
+    SWRad = df['ssrd']
+    FPAR = df['FPAR']
+    
+    # create fake SWC for now based on fpar signal and noise
+    #@todo add real SWC
+    #df['SWC'] = (df['FPAR'] + np.random.normal(loc=0, scale=0.1, size=len(df['FPAR']))) * 150
+    SWC = df['sSWC']
+    
+    #%% calc GPP
+    df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC)
+    df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC)
+    df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC)
+    df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC)
+    df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC)
+    df['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 0.25)
+    
+    #%%make plot
+    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 
+                 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-SWC', 'GPP_constant-FPAR']
+    df['2017'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
+    plt.show()
+    
+    #%%save data to disk
+    df.to_csv(outfile)
