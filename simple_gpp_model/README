@@ -1,4 +1,4 @@
 This is a simple GPP model based on the MODIS GPP algorithm.
 Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11mar112021.pdf
 
-The repository also contains a script to obtain times-series from ERA5 and AVHRR FPAR
+The repository also contains scripts to obtain predictor times-series from "observations" (ERA5 and AVHRR FPAR) in MPI-BGC network as well as CMIP6 models on DKRZ machines.

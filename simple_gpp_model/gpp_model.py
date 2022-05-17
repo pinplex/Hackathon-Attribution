@@ -8,6 +8,7 @@ Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11
 """
 
 ## import modules
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -28,10 +29,13 @@ Tmin_min = -7 # K
 Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
 VPD_max = 2400 # Pa
+SWC_min = 25 # mm
+SWC_max = 100 # mm
+b = 0.383 # Power-Law 
 
-#%%
-def VPD_scalar(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
-    
+#%% VPD scalar
+def f_VPD(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
+#@todo introduce clamp instead of if statements   
     m = -1 / (VPD_max - VPD_min)
     t = 1 - m * VPD_min
     
@@ -45,8 +49,8 @@ def VPD_scalar(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
         
     return abs(round(VPD_scalar, 4))
 
-#%%
-def Tmin_scalar(Tmin, Tmin_min=Tmin_min, Tmin_max=Tmin_max):
+#%% Tmin scalar
+def f_Tmin(Tmin, Tmin_min=Tmin_min, Tmin_max=Tmin_max):
     
     m = 1 / (Tmin_max - Tmin_min)
     t = 1 - m * Tmin_max
@@ -61,6 +65,15 @@ def Tmin_scalar(Tmin, Tmin_min=Tmin_min, Tmin_max=Tmin_max):
         
     return abs(round(Tmin_scalar, 4))
 
+#%% SWC (soil water content) scalar
+def f_SWC(SWC, SWC_min=SWC_min, SWC_max=SWC_max, b=b):
+    
+    REW = (SWC - SWC_min) / (SWC_max - SWC_min) # what is REW?
+  
+    SWC_scalar = np.power(REW, b)
+
+    return abs(round(SWC_scalar, 4))
+
 #%%
 def APAR(SWRad, FPAR):
     IPAR = (SWRad * 0.45)
@@ -68,19 +81,24 @@ def APAR(SWRad, FPAR):
     return APAR
 
 #%%
-def calc_GPP(Tmin, VPD, SWRad, FPAR):
+def calc_GPP(Tmin, VPD, SWRad, FPAR, SWC):
     
     if isinstance(Tmin, pd.Series) or isinstance(Tmin, pd.DataFrame):
-        Tmin = Tmin.apply(Tmin_scalar)
+        Tmin = Tmin.apply(f_Tmin)
     else:
-        Tmin = Tmin_scalar(Tmin)
+        Tmin = f_Tmin(Tmin)
     
     if isinstance(VPD, pd.Series) or isinstance(VPD, pd.DataFrame):
-        VPD = VPD.apply(VPD_scalar)
+        VPD = VPD.apply(f_VPD)
     else:
-        VPD = VPD_scalar(VPD)
+        VPD = f_VPD(VPD)
+        
+    if isinstance(SWC, pd.Series) or isinstance(SWC, pd.DataFrame):
+        SWC = SWC.apply(f_SWC)
+    else:
+        SWC = f_SWC(SWC)
 
-    return epsilon_max * Tmin * VPD * APAR(SWRad,FPAR) * 1000 # GPP in gC m-2 day-1
+    return epsilon_max * Tmin * VPD * APAR(SWRad,FPAR) * SWC * 1000 # GPP in gC m-2 day-1
 
 if __name__ == "__main__":
 
