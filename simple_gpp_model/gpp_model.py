@@ -82,28 +82,30 @@ def calc_GPP(Tmin, VPD, SWRad, FPAR):
 
     return epsilon_max * Tmin * VPD * APAR(SWRad,FPAR) * 1000 # GPP in gC m-2 day-1
 
-#%% read data
-df = pd.read_csv('data/predictor-variables_Jena.csv', index_col=0, parse_dates=True)
+if __name__ == "__main__":
 
-## get predictor variables
-Tmin = df['t2mmin']
-VPD = df['vpd']
-SWRad = df['ssrd']
-FPAR = df['FPAR']
+    #%% read data
+    df = pd.read_csv('data/predictor-variables_Jena.csv', index_col=0, parse_dates=True)
 
-#%% calc GPP
-df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR)
-df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR)
-df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR)
-df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR)
-df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5)
+    ## get predictor variables
+    Tmin = df['t2mmin']
+    VPD = df['vpd']
+    SWRad = df['ssrd']
+    FPAR = df['FPAR']
+
+    #%% calc GPP
+    df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR)
+    df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR)
+    df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR)
+    df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR)
+    df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5)
 
 
-#%%make plot
-variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 
-             'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-FPAR']
-df['2016'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
-plt.show()
+    #%%make plot
+    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 
+                 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-FPAR']
+    df['2016'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
+    plt.show()
 
-#%%save data to disk
-df.to_csv('data/predictor-variables+GPP_Jena_'+LCT+'.csv')
+    #%%save data to disk
+    df.to_csv('data/predictor-variables+GPP_Jena_'+LCT+'.csv')
