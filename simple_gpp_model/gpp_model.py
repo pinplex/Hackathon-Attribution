@@ -6,7 +6,7 @@ Title: Simple GPP model using the MODIS algo
 Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11mar112021.pdf
 @author: awinkler
 """
-
+#%%
 ## import modules
 import numpy as np
 import pandas as pd
