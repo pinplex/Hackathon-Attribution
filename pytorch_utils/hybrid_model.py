@@ -3,12 +3,27 @@ from torch import nn
 
 class HybridModel(nn.Module):
     
-    def __init__(self, replace_vpd = True):
+    def __init__(
+            self, 
+            lue = 1.051,
+            replace_vpd = True,
+            replace_tmin = False,
+            replace_apar = False,
+            replace_combine = False):
+
         super(HybridModel, self).__init__()
         self.replace_vpd = replace_vpd
+        self.replace_tmin = replace_tmin
+        self.lue = lue
         #if replace_vpd:
         self.fc1 = nn.Linear(1, 128)
         self.fc2 = nn.Linear(128, 1)
+        self.fc3 = nn.Linear(1, 128)
+        self.fc4 = nn.Linear(128, 1)
+        self.fc5 = nn.Linear(3, 128)
+        self.fc6 = nn.Linear(128, 1)
+        self.fc7 = nn.Linear(2, 128)
+        self.fc8 = nn.Linear(128, 1)
         self.relu = nn.ReLU()
 
     def forward(self,x):
@@ -26,9 +41,25 @@ class HybridModel(nn.Module):
         else:
             vpd_scalar = 1 - (torch.clamp(vpd, 650, 2400) - 650) / 1750
 
-        tmin_scalar = (torch.clamp(tmin, -7, 9.5) + 7) / 16.5
+        if self.replace_tmin:
+            tmin_scalar = self.fc3(tmin)
+            tmin_scalar = self.relu(tmin_scalar)
+            tmin_scalar = self.fc4(tmin)_scalar)
+        else:
+            tmin_scalar = (torch.clamp(tmin, -7, 9.5) + 7) / 16.5
         
-        apar = (swrad * 0.45) * fPAR
+        if self.replace_apar:
+            apar = self.fc7(torch.concat([swrad, fPAR], axis = -1))
+            apar = self.relu(apar)
+            apar = self.fc8(apar)
+        else:
+            apar = (swrad * 0.45) * fPAR
 
+        if self.replace_combine:
+            out = self.fc5(torch.concat([tmin_scalar, vpd_scalar, apar], axis = -1))
+            out = self.relu(out)
+            out = self.fc6(out)
+        else:
+            out =  tmin_scalar * vpd_scalar * apar 
 
-        return 1.051 * tmin_scalar * vpd_scalar * apar 
+        return lue * out
