@@ -11,6 +11,7 @@ class HybridModel(nn.Module):
             replace_apar = False,
             replace_swc = False,
             replace_combine = False, 
+            train_lue = False,
             mean_vpd = 0,
             mean_tmin = 0,
             mean_swrad = 0,
@@ -27,7 +28,11 @@ class HybridModel(nn.Module):
         super(HybridModel, self).__init__()
         self.replace_vpd = replace_vpd
         self.replace_tmin = replace_tmin
-        self.lue = lue
+        if train_lue:
+            self.register_parameter( name = 'lue', parameter = nn.Parameter(torch.random.rand(1)))
+        else:
+            self.lue = lue
+
         #if replace_vpd:
         self.fc1 = nn.Linear(1, 128)
         self.fc2 = nn.Linear(128, 1)
