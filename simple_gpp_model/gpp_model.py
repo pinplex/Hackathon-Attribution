@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-## define model
+#%% define MOD17 parameters
 
 ## Parameters for DBF (Deciduous Broadleaf Forest)
 #LCT = 'DBF' # land cover type
@@ -29,10 +29,23 @@ Tmin_min = -7 # K
 Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
 VPD_max = 2400 # Pa
-SWC_min = 25 # mm
-SWC_max = 100 # mm
+SWC_min = 0.1 # 25 mm
+SWC_max = 0.25 # 100 mm
 b = 0.383 # Power-Law 
 
+#%% define input variables
+kind = 'CMIP6' # OBS
+simulation = 'ssp585' #'historical'
+ESM = 'MPI-ESM1-2-LR'
+
+if kind == 'CMIP6':
+    infile = 'data/'+kind+'/predictor-variables_Jena_'+ESM+'_'+simulation+'.csv'
+    outfile = 'data/'+kind+'/predictor-variables+GPP_Jena_'+ESM+'_'+simulation+'_'+LCT+'.csv'
+else:
+    infile = 'data/'+kind+'/predictor-variables_Jena.csv'
+    outfile = 'data/'+kind+'/predictor-variables+GPP_Jena_'+LCT+'.csv'
+
+#%% MOD17 functions
 #%% VPD scalar
 def f_VPD(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
 #@todo introduce clamp instead of if statements   
@@ -71,6 +84,12 @@ def f_SWC(SWC, SWC_min=SWC_min, SWC_max=SWC_max, b=b):
     REW = (SWC - SWC_min) / (SWC_max - SWC_min) # what is REW?
   
     SWC_scalar = np.power(REW, b)
+    
+    if SWC < SWC_min:
+        SWC_scalar = 0
+        
+    if SWC > SWC_max:
+        SWC_scalar = 1
 
     return abs(round(SWC_scalar, 4))
 
@@ -103,27 +122,32 @@ def calc_GPP(Tmin, VPD, SWRad, FPAR, SWC):
 if __name__ == "__main__":
 
     #%% read data
-    df = pd.read_csv('data/predictor-variables_Jena.csv', index_col=0, parse_dates=True)
-
+    df = pd.read_csv(infile, index_col=0, parse_dates=True)
+    
     ## get predictor variables
     Tmin = df['t2mmin']
     VPD = df['vpd']
     SWRad = df['ssrd']
     FPAR = df['FPAR']
-
+    
+    # create fake SWC for now based on fpar signal and noise
+    #@todo add real SWC
+    #df['SWC'] = (df['FPAR'] + np.random.normal(loc=0, scale=0.1, size=len(df['FPAR']))) * 150
+    SWC = df['sSWC']
+    
     #%% calc GPP
-    df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR)
-    df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR)
-    df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR)
-    df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR)
-    df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5)
-
-
+    df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC)
+    df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC)
+    df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC)
+    df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC)
+    df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC)
+    df['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 0.25)
+    
     #%%make plot
-    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 
-                 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-FPAR']
-    df['2016'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
+    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 
+                 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-SWC', 'GPP_constant-FPAR']
+    df['2017'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
     plt.show()
-
+    
     #%%save data to disk
-    df.to_csv('data/predictor-variables+GPP_Jena_'+LCT+'.csv')
+    df.to_csv(outfile)
