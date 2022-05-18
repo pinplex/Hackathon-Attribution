@@ -47,7 +47,7 @@ def load_data():
 
 
     ## load data from csv to Xarray dataset
-    df = pd.read_csv('../simple_gpp_model/data/predictor-variables+GPP_Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
+    df = pd.read_csv('../simple_gpp_model/data/OBS/predictor-variables+GPP_Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
 
     if deseasonalize:
         df = df.groupby(by=df.index.dayofyear).transform(lambda x: x - x.mean())
