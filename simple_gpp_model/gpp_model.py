@@ -37,7 +37,7 @@ b = 0.383 # Power-Law
 kind = 'OBS' # 'CMIP6'
 
 # for OBS
-location = 'Jena-USA' #'next-to-Jena'
+location = 'Jena' #'Jena-USA' #'next-to-Jena'
 
 # for CMIP6
 simulation = 'historical'# 'ssp585'
