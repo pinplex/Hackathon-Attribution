@@ -10,7 +10,7 @@ class HybridModel(nn.Module):
             replace_tmin = False,
             replace_apar = False,
             replace_swc = False,
-            replace_combine = False
+            replace_combine = False, 
             mean_vpd = 0,
             mean_tmin = 0,
             mean_swrad = 0,
