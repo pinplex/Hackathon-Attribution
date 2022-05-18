@@ -59,7 +59,7 @@ def load_data():
     # In[32]:
 
 
-    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'GPP', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD']
+    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD']
     df.loc['2016'][variables].plot(subplots=True, layout=(4, 2), figsize=(14, 10), ax=None)
     plt.show()
 
@@ -68,7 +68,7 @@ def load_data():
 
 
     train_loader = torch.utils.data.DataLoader(
-        TSData(ds=ds, features=['ssrd', 't2mmin', 'vpd', 'FPAR'], targets=target_var, time_slice=slice('1982', '2000'),
+        TSData(ds=ds, features=['ssrd', 't2mmin', 'vpd', 'FPAR', 'sSWC' ], targets=target_var, time_slice=slice('1982', '2000'),
                normalize=False,
                #norm_kind=norm_kind,
                ),
@@ -76,7 +76,7 @@ def load_data():
         shuffle=True)
 
     valid_loader = torch.utils.data.DataLoader(
-        TSData(ds=ds, features=['ssrd', 't2mmin', 'vpd', 'FPAR'], targets=target_var, time_slice=slice('2001', '2016'),
+        TSData(ds=ds, features=['ssrd', 't2mmin', 'vpd', 'FPAR', 'sSWC'], targets=target_var, time_slice=slice('2001', '2016'),
                normalize=False,
                #norm_kind=norm_kind,
                return_seq=True,
