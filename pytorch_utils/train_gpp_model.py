@@ -3,7 +3,7 @@
 
 # In[165]:
 
-
+#%%
 ## import modules
 import sys
 from collections import OrderedDict
@@ -34,21 +34,9 @@ from captum.attr._core.lrp import SUPPORTED_NON_LINEAR_LAYERS
 # * For the training loader, we use a window size of 100 time steps from the range 1980-01-01 to 2000-12-31
 # * For the validation loader, we use the entire sequence 2001-01-01 to 2020-12-31
 
-
-def load_data():
-    ## some settings
-    LCT = 'MF'  # land cover type
-    norm_kind = 'mean_std'  # min_max
-    deseasonalize = False
-    target_var = 'GPP'
-
-
-    # In[31]:
-
-
-    ## load data from csv to Xarray dataset
-    df = pd.read_csv('../simple_gpp_model/data/OBS/predictor-variables+GPP_Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
-
+#%%
+def load_data(df):
+    
     if deseasonalize:
         df = df.groupby(by=df.index.dayofyear).transform(lambda x: x - x.mean())
 
@@ -286,13 +274,23 @@ def plot_wss(model, data_loader):
     plt.show()
     plt.close()
 
+
+
 if __name__ == '__main__':
-    train_loader, valid_loader = load_data()
+    ## some settings
+    LCT = 'MF'  # land cover type
+    norm_kind = 'mean_std'  # min_max
+    deseasonalize = False
+    target_var = 'GPP'
+    ## load data from csv to Xarray dataset
+    df = pd.read_csv('../simple_gpp_model/data/OBS/predictor-variables+GPP_Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
+
+    train_loader, valid_loader = load_data(df)
 
     model = FCN(num_feature=4, learning_rate=0.1, activation='relu', output_activation='identity')
 
     num_epochs = 100
-    hybrid_model = HybridModel(True)
+    hybrid_model = HybridModel(True, data_frame = df)
     hybrid_model.train()
 
     loss_fn = nn.MSELoss()
@@ -367,3 +365,5 @@ if __name__ == '__main__':
     plt.show()
 
     plot_wss(hybrid_model, valid_loader)
+
+# %%

@@ -108,3 +108,19 @@ class HybridModel(nn.Module):
             out =  tmin_scalar * vpd_scalar * apar 
 
         return self.lue * out
+
+    def get_mean_std(self,df):
+        self.mean_vpd = df.vpd.mean()
+        self.std_vpd = df.vpd.std()
+
+        self.mean_tmin = df.t2mmin.mean()
+        self.std_tmin = df.t2mmin.std()
+
+        self.mean_swrad = df.ssrd.mean()
+        self.std_swrad = df.ssrd.std()
+
+        self.mean_fPAR = df.FPAR.mean()
+        self.std_fPAR = df.FPAR.std()
+
+        self.mean_swc = df.sSWC.mean()
+        self.std_swc = df.sSWC.std()
