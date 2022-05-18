@@ -34,7 +34,8 @@ class HybridModel(nn.Module):
             replace_tmin (Bool): Indicates whether the tmin function should be learned or used from the MODIS modell. default is False.
             replace_apar (Bool): Indicates whether the swrs and fPAR function should be learned or used from the MODIS modell. default is False.
             replace_swc (Bool): Indicates whether the swc function should be learned or used from the MODIS modell. default is False.
-            replace_combine (Bool):
+            replace_combine (Bool): Indicates whether the combination of fuctions (the multiplication) should be learned or taken from the MODIS model. The default value is False
+            train_lue (Bool): Indicates whether the provided LUE value should be used or a LUE value should be trained from the data.
         """
 
         super(HybridModel, self).__init__()
