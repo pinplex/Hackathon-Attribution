@@ -48,7 +48,7 @@ def load_data(df):
 
 
     variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD']
-    df.loc['2016'][variables].plot(subplots=True, layout=(4, 2), figsize=(14, 10), ax=None)
+    df.loc['2016'][variables].plot(subplots=True, layout=(4, 3), figsize=(14, 10), ax=None)
     plt.show()
 
 
@@ -283,13 +283,13 @@ if __name__ == '__main__':
     deseasonalize = False
     target_var = 'GPP'
     ## load data from csv to Xarray dataset
-    df = pd.read_csv('../simple_gpp_model/data/OBS/predictor-variables+GPP_Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
+    df = pd.read_csv('../simple_gpp_model/data/OBS/predictor-variables+GPP_next-to-Jena_' + LCT + '.csv', index_col=0, parse_dates=True)
 
     train_loader, valid_loader = load_data(df)
 
     model = FCN(num_feature=4, learning_rate=0.1, activation='relu', output_activation='identity')
 
-    num_epochs = 100
+    num_epochs = 5
     hybrid_model = HybridModel(True, data_frame = df)
     hybrid_model.train()
 

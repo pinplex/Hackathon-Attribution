@@ -40,6 +40,11 @@ class HybridModel(nn.Module):
         super(HybridModel, self).__init__()
         self.replace_vpd = replace_vpd
         self.replace_tmin = replace_tmin
+        self.replace_apar = replace_apar
+        self.replace_swc = replace_swc
+        self.replace_combine = replace_combine
+        self.train_lue = train_lue
+
         if train_lue:
             self.register_parameter( name = 'lue', parameter = nn.Parameter(torch.random.rand(1)))
         else:
@@ -55,11 +60,12 @@ class HybridModel(nn.Module):
         self.fc7 = nn.Linear(2, 128)
         self.fc8 = nn.Linear(128, 1)
         self.fc9 = nn.Linear(1, 128)
-        self.fca = nn.linear(128,1)
+        self.fca = nn.Linear(128,1)
         self.relu = nn.ReLU()
-
+        
+        # mean and std 
         if not data_frame is None:
-            self.get_mean_std()
+            self.get_mean_std(data_frame)
         else: 
             self.mean_vpd = mean_vpd
             self.mean_tmin = mean_tmin
@@ -71,8 +77,6 @@ class HybridModel(nn.Module):
             self.std_swrad = std_swrad
             self.std_fpar = std_fpar
             self.std_swc = std_swc
-
-
 
 
     def forward(self,x):
@@ -126,18 +130,18 @@ class HybridModel(nn.Module):
 
         return self.lue * out
 
-    def get_mean_std(self,df):
-        self.mean_vpd = df.vpd.mean()
-        self.std_vpd = df.vpd.std()
+    def get_mean_std(self,data_frame):
+        self.mean_vpd = data_frame.vpd.mean()
+        self.std_vpd = data_frame.vpd.std()
 
-        self.mean_tmin = df.t2mmin.mean()
-        self.std_tmin = df.t2mmin.std()
+        self.mean_tmin = data_frame.t2mmin.mean()
+        self.std_tmin = data_frame.t2mmin.std()
 
-        self.mean_swrad = df.ssrd.mean()
-        self.std_swrad = df.ssrd.std()
+        self.mean_swrad = data_frame.ssrd.mean()
+        self.std_swrad = data_frame.ssrd.std()
 
-        self.mean_fpar = df.FPAR.mean()
-        self.std_fpar = df.FPAR.std()
+        self.mean_fpar = data_frame.FPAR.mean()
+        self.std_fpar = data_frame.FPAR.std()
 
-        self.mean_swc = df.sSWC.mean()
-        self.std_swc = df.sSWC.std()
+        self.mean_swc = data_frame.sSWC.mean()
+        self.std_swc = data_frame.sSWC.std()
