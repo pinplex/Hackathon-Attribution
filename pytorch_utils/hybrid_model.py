@@ -119,8 +119,8 @@ class HybridModel(nn.Module):
         self.mean_swrad = df.ssrd.mean()
         self.std_swrad = df.ssrd.std()
 
-        self.mean_fPAR = df.FPAR.mean()
-        self.std_fPAR = df.FPAR.std()
+        self.mean_fpar = df.FPAR.mean()
+        self.std_fpar = df.FPAR.std()
 
         self.mean_swc = df.sSWC.mean()
         self.std_swc = df.sSWC.std()
