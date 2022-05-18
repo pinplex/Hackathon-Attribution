@@ -24,6 +24,18 @@ class HybridModel(nn.Module):
             std_swc = 1,
             data_frame = None,
             ):
+        
+        """ 
+        The class to create various hybrid models.
+
+        Params:
+            lue (float): the maximum light-use efficiency. The default is 1.051. If train_lue is True, this parameter will be ignored.
+            replace_vpd (Bool): Indicates whether the vpd function should be learned or used from the MODIS modell. default is True.
+            replace_tmin (Bool): Indicates whether the tmin function should be learned or used from the MODIS modell. default is False.
+            replace_apar (Bool): Indicates whether the swrs and fPAR function should be learned or used from the MODIS modell. default is False.
+            replace_swc (Bool): Indicates whether the swc function should be learned or used from the MODIS modell. default is False.
+            replace_combine (Bool):
+        """
 
         super(HybridModel, self).__init__()
         self.replace_vpd = replace_vpd
