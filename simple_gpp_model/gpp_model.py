@@ -29,21 +29,26 @@ Tmin_min = -7 # K
 Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
 VPD_max = 2400 # Pa
-SWC_min = 0.1 # 25 mm
-SWC_max = 0.25 # 100 mm
+SWC_min = 0.1 #, m3 m-3; 25 mm ala Markus ?
+SWC_max = 0.25 # m3 m-3; 100 mm ala Markus ?
 b = 0.383 # Power-Law 
 
 #%% define input variables
-kind = 'CMIP6' # OBS
-simulation = 'ssp585' #'historical'
+kind = 'OBS' # 'CMIP6'
+
+# for OBS
+location = 'Jena-USA' #'next-to-Jena'
+
+# for CMIP6
+simulation = 'historical'# 'ssp585'
 ESM = 'MPI-ESM1-2-LR'
 
 if kind == 'CMIP6':
     infile = 'data/'+kind+'/predictor-variables_Jena_'+ESM+'_'+simulation+'.csv'
     outfile = 'data/'+kind+'/predictor-variables+GPP_Jena_'+ESM+'_'+simulation+'_'+LCT+'.csv'
 else:
-    infile = 'data/'+kind+'/predictor-variables_Jena.csv'
-    outfile = 'data/'+kind+'/predictor-variables+GPP_Jena_'+LCT+'.csv'
+    infile = 'data/'+kind+'/predictor-variables_'+location+'.csv'
+    outfile = 'data/'+kind+'/predictor-variables+GPP_'+location+'_'+LCT+'.csv'
 
 #%% MOD17 functions
 #%% VPD scalar
@@ -146,7 +151,7 @@ if __name__ == "__main__":
     #%%make plot
     variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 
                  'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-SWC', 'GPP_constant-FPAR']
-    df['2017'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
+    df['2014'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
     plt.show()
     
     #%%save data to disk
