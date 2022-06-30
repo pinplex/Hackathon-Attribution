@@ -40,12 +40,14 @@ ERA5 = "/Net/Groups/data_BGC/era5/e1/0d25_daily/"
 
 ssrd = obtain_ts(ERA5, 'ssrd')
 t2mmin = obtain_ts(ERA5, 't2mmin')
+e = obtain_ts(ERA5, 'e')
+tp = obtain_ts(ERA5, 'tp')
 swvl1 = obtain_ts(ERA5, 'swvl1')
 swvl1 = swvl1.rename({'swvl1': 'sSWC'}, axis=1) # surface soil water content
 vpd = obtain_ts(ERA5, 'vpd_daytime_mean')
 vpd = vpd.rename({'vpd_daytime_mean': 'vpd'}, axis=1)
 
-predictors = pd.concat([ssrd, t2mmin['t2mmin'], vpd['vpd'], swvl1['sSWC']], axis=1)
+predictors = pd.concat([ssrd, t2mmin['t2mmin'], e['e'], tp['tp'], vpd['vpd'], swvl1['sSWC']], axis=1)
 predictors.index = pd.date_range(start='1982-01-01', periods=len(predictors), freq='1d')
 
 # harmonize units
@@ -60,4 +62,5 @@ fpar.index = pd.date_range(start='1982-01-15', periods=len(fpar), freq='1d')
 
 ## Combine and save to disk
 predictors = pd.concat([predictors, fpar['FPAR']], axis=1)
+predictors = predictors.dropna()
 predictors.to_csv('data/OBS/predictor-variables_'+location+'.csv')
