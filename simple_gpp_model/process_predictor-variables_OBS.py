@@ -14,7 +14,7 @@ import pandas as pd
 locations = [
              (117.602190, 32.198857), # Zhejiang, China
              (11.5892, 50.9271), # Thüringen, Germany
-             (-72.987368, 42.138968), # New England, USA
+             (-73.987368, 43.138968), # New England, USA
              ]
 
 ## add cluster: select gird-cells ~ 1°N 1°E away
@@ -77,4 +77,4 @@ for i in range(len(locations)):
 #predictors = predictors.dropna()
 #predictors.to_csv('data/OBS/predictor-variables_'+location+'.csv')
 ds = xr.merge(d.values(), compat='no_conflicts')
-ds.to_zarr('data/OBS/predictor-variables.csv')
+ds.to_netcdf('data/OBS/predictor-variables.nc')
