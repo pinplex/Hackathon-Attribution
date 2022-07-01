@@ -26,10 +26,11 @@ def obtain_ts(path, var, lon, lat):
 ## data path
 ERA5 = "/Net/Groups/data_BGC/era5/e1/0d25_daily/" # in MPI-BGC network
 
+d = {}
 ## loop over locations
-for i in locations:
+for i in range(len(locations)):
 
-    lon, lat = i
+    lon, lat = locations[i]
 
     ## retrieve MET predictors
     ssrd = obtain_ts(ERA5, 'ssrd', lon, lat)
@@ -53,12 +54,16 @@ for i in locations:
     fpar.index = pd.date_range(start='1982-01-15', periods=len(fpar), freq='1d')
 
     ## merge predictors
-    predictors = pd.concat([ssrd, t2mmin['t2mmin'], co2['co2'], e['e'], tp['tp'], vpd['vpd'], swvl1['sSWC'], fpar['FPAR']], axis=1)
+    predictors = pd.concat([ssrd, t2mmin['t2mmin'], e['e'], tp['tp'], vpd['vpd'], swvl1['sSWC']], axis=1)
     predictors.index = pd.date_range(start='1982-01-01', periods=len(predictors), freq='1d')
+    predictors = pd.concat([predictors, co2['co2'], fpar['FPAR']], axis=1)
+    predictors = predictors.dropna()
 
-    ## harmonize units
-    predictors['vpd'] = predictors['vpd'] * 100 # hPa to Pa
-    predictors['t2mmin'] = predictors['t2mmin'] - 273.15 # K to Celsius
+    ## convert to xarray
+    predictors = predictors.set_index([predictors.index, predictors['longitude'], predictors['latitude']]).drop(['latitude','longitude'], axis=1)
+    predictors = predictors.to_xarray()
+    predictors = predictors.rename_dims({'level_0': 'time'}).rename_vars({'level_0': 'time'})
+    d[i] = predictors
 
 ## Combine and save to disk
 #predictors = predictors.dropna()
