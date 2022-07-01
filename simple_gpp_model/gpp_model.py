@@ -29,9 +29,9 @@ Tmin_min = -7 # K
 Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
 VPD_max = 2400 # Pa
-SWC_min = 0.1 #, m3 m-3; 25 mm ala Markus ?
-SWC_max = 0.25 # m3 m-3; 100 mm ala Markus ?
-b = 0.383 # Power-Law 
+SWC_min = 25 # mm; old: 0.1 #, m3 m-3; 25 mm ala Markus ?
+SWC_max = 100 # mm; old: 0.25 # m3 m-3; 100 mm ala Markus ?
+b = 0.383 # Power-Law
 
 #%% define input variables
 kind = 'OBS' # 'CMIP6'
@@ -53,70 +53,82 @@ else:
 #%% MOD17 functions
 #%% VPD scalar
 def f_VPD(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
-#@todo introduce clamp instead of if statements   
+#@todo introduce clamp instead of if statements
     m = -1 / (VPD_max - VPD_min)
     t = 1 - m * VPD_min
-    
+
     VPD_scalar = m * VPD + t
-    
+
     if VPD < VPD_min:
         VPD_scalar = 1
-        
+
     if VPD > VPD_max:
         VPD_scalar = 0
-        
+
     return abs(round(VPD_scalar, 4))
 
 #%% Tmin scalar
 def f_Tmin(Tmin, Tmin_min=Tmin_min, Tmin_max=Tmin_max):
-    
+
     m = 1 / (Tmin_max - Tmin_min)
     t = 1 - m * Tmin_max
-    
+
     Tmin_scalar = m * Tmin + t
-    
+
     if Tmin < Tmin_min:
         Tmin_scalar = 0
-        
+
     if Tmin > Tmin_max:
         Tmin_scalar = 1
-        
+
     return abs(round(Tmin_scalar, 4))
 
 #%% SWC (soil water content) scalar
 def f_SWC(SWC, SWC_min=SWC_min, SWC_max=SWC_max, b=b):
-    
+
     REW = (SWC - SWC_min) / (SWC_max - SWC_min) # what is REW?
-  
+
     SWC_scalar = np.power(REW, b)
-    
+
     if SWC < SWC_min:
         SWC_scalar = 0
-        
+
     if SWC > SWC_max:
         SWC_scalar = 1
 
     return abs(round(SWC_scalar, 4))
 
-#%%
+#%% Retrieve APAR
 def APAR(SWRad, FPAR):
     IPAR = (SWRad * 0.45)
     APAR = FPAR * IPAR
     return APAR
 
+#%% Bucket Model for Surface Soil Moisture
+def SWC_bucket(p, et, S_max=150):
+
+    S = []
+    S.append(S_max) # completely fill up bucket
+    P_minus_E = p + et # compute P minus E (et is defined with negative sign)
+    for i in range(len(P_minus_E)):
+        S_new = S[i] + P_minus_E[i] # add or remove water from the bucket
+        S.append(min(S_new,S_max))
+
+    return S[1:]
+
 #%%
 def calc_GPP(Tmin, VPD, SWRad, FPAR, SWC):
-    
+
     if isinstance(Tmin, pd.Series) or isinstance(Tmin, pd.DataFrame):
         Tmin = Tmin.apply(f_Tmin)
     else:
         Tmin = f_Tmin(Tmin)
-    
+
     if isinstance(VPD, pd.Series) or isinstance(VPD, pd.DataFrame):
         VPD = VPD.apply(f_VPD)
     else:
         VPD = f_VPD(VPD)
-        
+
     if isinstance(SWC, pd.Series) or isinstance(SWC, pd.DataFrame):
         SWC = SWC.apply(f_SWC)
     else:
@@ -128,31 +140,36 @@ if __name__ == "__main__":
 
     #%% read data
     df = pd.read_csv(infile, index_col=0, parse_dates=True)
-    
+
     ## get predictor variables
     Tmin = df['t2mmin']
     VPD = df['vpd']
     SWRad = df['ssrd']
     FPAR = df['FPAR']
-    
+
+    #%% remove this part - outdated
     # create fake SWC for now based on fpar signal and noise
     #@todo add real SWC
     #df['SWC'] = (df['FPAR'] + np.random.normal(loc=0, scale=0.1, size=len(df['FPAR']))) * 150
-    SWC = df['sSWC']
-    
+    # SWC = df['sSWC']
+
+    #%% calc Soil Moisture based on Precipitation and Evapotranspiration with a surface bucket
+    df['bSWC'] = SWC_bucket(p=df['tp'], et=df['e'])
+    SWC = df['bSWC'].clip(0) # remove negative values
+
     #%% calc GPP
     df['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC)
     df['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC)
     df['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC)
     df['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC)
     df['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC)
-    df['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 0.25)
-    
+    df['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 70)
+
     #%%make plot
-    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'sSWC', 'GPP', 
+    variables = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'bSWC', 'GPP',
                  'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD', 'GPP_constant-SWC', 'GPP_constant-FPAR']
-    df['2014'][variables].plot(subplots=True, layout=(4,3), figsize=(14,10))
+    df['2003'][variables].plot(subplots=True, layout=(4,4), figsize=(14,10))
     plt.show()
-    
+
     #%%save data to disk
     df.to_csv(outfile)
