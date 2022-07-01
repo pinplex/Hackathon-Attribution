@@ -10,11 +10,19 @@ Title: Simple script to process EAR5 and AHVRR Fpar to times series
 import xarray as xr
 import pandas as pd
 
-## define locations
+## define locations with Mixed Forests
 locations = [
-             (-92.1258, 31.6953), # Jena-USA
-             (11.5892, 50.9271), # Jena-GER
+             (117.602190, 32.198857), # Zhejiang, China
+             (11.5892, 50.9271), # Thüringen, Germany
+             (-72.987368, 42.138968), # New England, USA
              ]
+
+## add cluster: select gird-cells ~ 1°N 1°E away
+for i in range(len(locations)):
+    locations.append((locations[i][0]+1, locations[i][1]+1))
+    locations.append((locations[i][0]-1, locations[i][1]+1))
+    locations.append((locations[i][0]+1, locations[i][1]-1))
+    locations.append((locations[i][0]-1, locations[i][1]-1))
 
 ## ERA5 Met
 def obtain_ts(path, var, lon, lat):
@@ -68,3 +76,5 @@ for i in range(len(locations)):
 ## Combine and save to disk
 #predictors = predictors.dropna()
 #predictors.to_csv('data/OBS/predictor-variables_'+location+'.csv')
+ds = xr.merge(d.values(), compat='no_conflicts')
+ds.to_zarr('data/OBS/predictor-variables.csv')
