@@ -12,17 +12,17 @@ import pandas as pd
 
 ## define locations with Mixed Forests
 locations = [
-             (117.602190, 32.198857), # Zhejiang, China
-             (11.5892, 50.9271), # Thüringen, Germany
+             (114.446635, 26.378536), # Suichuan County, China
+             (11.5892, 51.9271), # Thüringen, Germany
              (-73.987368, 43.138968), # New England, USA
              ]
 
 ## add cluster: select gird-cells ~ 1°N 1°E away
 for i in range(len(locations)):
-    locations.append((locations[i][0]+1, locations[i][1]+1))
-    locations.append((locations[i][0]-1, locations[i][1]+1))
-    locations.append((locations[i][0]+1, locations[i][1]-1))
-    locations.append((locations[i][0]-1, locations[i][1]-1))
+    locations.append((locations[i][0]+0.5, locations[i][1]+0.5))
+    locations.append((locations[i][0]-0.5, locations[i][1]+0.5))
+    locations.append((locations[i][0]+0.5, locations[i][1]-0.5))
+    locations.append((locations[i][0]-0.5, locations[i][1]-0.5))
 
 ## ERA5 Met
 def obtain_ts(path, var, lon, lat):
