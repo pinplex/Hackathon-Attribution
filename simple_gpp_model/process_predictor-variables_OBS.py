@@ -12,7 +12,7 @@ import pandas as pd
 
 ## define locations with Mixed Forests
 locations = [
-             (47.499800, 129.022571), # Meixi District, Yichun, Heilongjiang, China
+             (129.022571, 47.499800), # Meixi District, Yichun, Heilongjiang, China
              (11.5892, 51.9271), # Thüringen, Germany
              (-73.987368, 43.138968), # New England, USA
              ]
