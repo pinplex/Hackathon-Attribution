@@ -153,18 +153,18 @@ if __name__ == "__main__":
 
     #%% calc GPP
     ds['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, CO2)
-    ds['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC, CO2)
-    ds['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC, CO2)
-    ds['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC, CO2)
-    ds['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC, CO2)
-    ds['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 100, CO2)
-    ds['GPP_constant-CO2'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, 340) ## CO2 at 1982
+    #ds['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC, CO2)
+    #ds['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC, CO2)
+    #ds['GPP_constant-VPD'] = calc_GPP(Tmin, 650, SWRad, FPAR, SWC, CO2)
+    #ds['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC, CO2)
+    #ds['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 100, CO2)
+    #ds['GPP_constant-CO2'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, 340) ## CO2 at 1982
 
 
     #%%make plot
     variables = ['t2mmin', 'co2', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'bSWC',
-                 'GPP', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
-                 'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
+                 'GPP']#, 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
+                 #'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
     df = ds.sel(time='2003', location=1).to_dataframe().reset_index()
 
     df[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
@@ -181,4 +181,6 @@ if __name__ == "__main__":
     plt.show()
 
     #%%save data to disk
-    ds.to_netcdf(outfile)
+    ds = ds.astype('float32')
+    ds = ds.drop('sSWC')
+    ds.sel(time=slice(None,'2013')).to_netcdf(outfile)
