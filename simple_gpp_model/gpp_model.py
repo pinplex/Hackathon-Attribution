@@ -162,8 +162,8 @@ if __name__ == "__main__":
 
 
     #%%make plot
-    variables = ['t2mmin', 'co2', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'bSWC',
-                 'GPP']#, 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
+    variables = ['t2mmin', 'co2', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 
+                 'GPP']#, 'bSWC', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
                  #'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
     df = ds.sel(time='2003', location=1).to_dataframe().reset_index()
 
@@ -177,10 +177,10 @@ if __name__ == "__main__":
     diff[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
     plt.show()
     
-    (diff['GPP'] - diff['GPP_constant-CO2']).plot()
+    #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
     plt.show()
 
     #%%save data to disk
     ds = ds.astype('float32')
-    ds = ds.drop('sSWC')
+    ds = ds.drop(['sSWC','bSWC'])
     ds.sel(time=slice(None,'2013')).to_netcdf(outfile)
