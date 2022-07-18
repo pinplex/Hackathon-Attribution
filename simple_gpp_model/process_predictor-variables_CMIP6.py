@@ -156,3 +156,14 @@ ds['co2'] = (("time"), co2['CO2'])
 ds.to_netcdf('data/CMIP6/predictor-variables_'+simulation+'.nc')
 #to_zarr('data/OBS/predictor-variables.zarr')
 
+#%% reduce and remove lat + lon
+#%%
+# ds = xr.open_dataset('data/CMIP6/predictor-variables_'+simulation+'.nc')
+
+# locations = ds.location.to_numpy()
+# d = {}
+# for i in locations:
+#     d[i] = ds.sel(location=i).dropna('lat', how='all').dropna('lon', how='all').squeeze().drop(['lat', 'lon'])
+
+# ds = xr.concat(d.values(), dim='location')
+# ds.to_netcdf('predictor-variables_'+simulation+'_reduced.nc')
