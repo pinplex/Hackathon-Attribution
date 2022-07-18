@@ -8,6 +8,7 @@ Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11
 """
 #%%
 ## import modules
+from random import shuffle
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -183,4 +184,14 @@ if __name__ == "__main__":
     #%%save data to disk
     ds = ds.astype('float32')
     ds = ds.drop(['sSWC','bSWC'])
-    ds.sel(time=slice(None,'2013')).to_netcdf(outfile)
+
+    ## disguise variables
+    vrs = ['ssrd', 'bSWC', 't2mmin', 'tp', 'e', 'vpd', 'FPAR', 'sfcWind']
+    shuffle(vrs)
+
+    mapping = {}
+    for i in range(len(vrs)):
+        ds = ds.rename({vrs[i]:'var'+str(i+1)})
+        mapping[vrs[i]] = 'var'+str(i+1)
+
+    ds.to_netcdf(outfile)
