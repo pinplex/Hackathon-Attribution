@@ -29,7 +29,10 @@ class Linear(torch.nn.Module):
 def run(
         rerun=True,
         root_dir: str = ROOT_DIR,
-        version=None) -> tuple[pl.LightningModule, torch.utils.data.DataLoader]:
+        version=None,
+        seed=None) -> tuple[pl.LightningModule, torch.utils.data.DataLoader]:
+
+    pl.seed_everything(seed)
 
     datamodule = DataModule(
         data_path='./simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
