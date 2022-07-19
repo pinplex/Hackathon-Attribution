@@ -35,11 +35,13 @@ def run(
     pl.seed_everything(seed)
 
     datamodule = DataModule(
-        data_path='./simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
-        features=['t2mmin', 'tp'],
+        data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+        features=[f'var{i}' for i in range(1, 8)],
         targets=['GPP'],
-        training_subset={'location': [1, 2], 'time': slice('1983', '2000')},
-        validation_subset={'location': [3, 4], 'time': slice('2001', '2013')},
+        training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
+        validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
+        context_size=1,
+        window_size=2,
         batch_size=4,
     )
 
