@@ -410,10 +410,18 @@ class DataModule(pl.LightningDataModule):
             **dataloader_kwargs) -> None:
         """Initilize lightning data module.
 
-        Note
-        ----
-        Before writing predictions using `trainer.predict`, set the attribute 'DataModule.assign_code'
-        to later differentiate between different cross validation sets. See `DataModule.assign_predictions`.
+        Return shapes
+        -------------
+        The dataloaders return a dict of features (x), targets (y), and data_sel:
+            x: (batch, seq_len, num_features,)
+            y: (batch, seq_len, num_targets,)
+            data_sel: {
+                'loc': (batch,),
+                'warmup_start': (batch,),
+                'pred_start': (batch,),
+                'pred_end': (batch,),
+                'pred_end': (batch,)
+            }
 
         Parameters
         ----------
