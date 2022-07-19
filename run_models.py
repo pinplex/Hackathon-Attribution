@@ -8,8 +8,8 @@ for runner in [linear]:
     log_dir = f'./hackathon/eval/{model_name}'
 
     # Evaluate.
-    model, eval_loader = runner(root_dir=log_dir, version='final')
-    eval_loader.dataset.ds.to_netcdf(os.path.join(log_dir, 'predictions.nc'), seed=910)
+    model, eval_loader = runner(root_dir=log_dir, version='final', seed=910)
+    eval_loader.dataset.ds.to_netcdf(os.path.join(log_dir, 'predictions.nc'))
 
     # Can apply XAI here.
     model, eval_loader = runner(rerun=False, root_dir=log_dir, version='final', seed=910)
