@@ -1,9 +1,9 @@
-
 import torch
 import pytorch_lightning as pl
 
-from typing import Callable, Any
+from typing import Callable, Any, Union, Optional
 from torch import Tensor
+
 
 class BaseModel(pl.LightningModule):
     def __init__(
@@ -11,7 +11,6 @@ class BaseModel(pl.LightningModule):
             custom_model: torch.nn.Module,
             learning_rate: float,
             weight_decay: float):
-
         super().__init__()
 
         self.model = custom_model
@@ -22,7 +21,8 @@ class BaseModel(pl.LightningModule):
 
         self.save_hyperparameters()
 
-    def common_step(self, batch: tuple[Tensor, Tensor, dict[str, Any]]) -> tuple[Tensor, Tensor]:
+    def common_step(self, batch: Union[Tensor, Tensor, dict[str, Any]],
+                    step_name: Optional[str] = None) -> tuple[Tensor, Tensor]:
         x = batch['x']
         y = batch['y']
         data_sel = batch['data_sel']
@@ -32,43 +32,35 @@ class BaseModel(pl.LightningModule):
         pred_len = data_sel['pred_len'].min()
         loss = self.loss_fn(y_hat[:, -pred_len:, :], y[:, -pred_len:, :])
 
+        if step_name:
+            self.log(f'{step_name}_loss', loss, on_step=False, on_epoch=True)
         return y_hat, loss
 
     def training_step(
             self,
-            batch: tuple[Tensor, Tensor, dict[str, Any]],
+            batch: Union[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> Tensor:
-
-        _, loss = self.common_step(batch)
-
-        self.log('train_loss', loss, on_step=True, on_epoch=True)
+        _, loss = self.common_step(batch, 'train')
 
         return loss
 
     def validation_step(
             self,
-            batch: tuple[Tensor, Tensor, dict[str, Any]],
+            batch: Union[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> None:
-
-        _, loss = self.common_step(batch)
-
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.common_step(batch, 'val')
 
     def test_step(
             self,
-            batch: tuple[Tensor, Tensor, dict[str, Any]],
+            batch: Union[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> None:
-
-        _, loss = self.common_step(batch)
-
-        self.log('test_loss', loss, on_step=False, on_epoch=True)
+        _, loss = self.common_step(batch, 'test')
 
     def predict_step(
             self,
-            batch: tuple[Tensor, Tensor, Tensor],
+            batch: Union[Tensor, Tensor, dict[str, Any]],
             batch_idx: int,
             dataloader_idx: int = 0) -> None:
-
         y_hat, _ = self.common_step(batch)
 
         dataset = self.trainer.predict_dataloaders[dataloader_idx].dataset
@@ -76,7 +68,6 @@ class BaseModel(pl.LightningModule):
         dataset.assign_predictions(pred=y_hat, data_sel=batch['data_sel'])
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
 
         return optimizer
