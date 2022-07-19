@@ -1,4 +1,3 @@
-
 import torch
 from torch import Tensor
 import pytorch_lightning as pl
@@ -11,7 +10,6 @@ from glob import glob
 
 from hackathon.data_pipeline import DataModule
 from hackathon.base_model import BaseModel
-
 
 ROOT_DIR = f'./logs/{os.path.basename(__file__).split(".py")[0]}'
 
@@ -26,24 +24,22 @@ class Linear(torch.nn.Module):
         out = self.linear(x)
         return out
 
+
 def run(
         rerun=True,
         root_dir: str = ROOT_DIR,
         version=None,
         seed=None) -> tuple[pl.LightningModule, torch.utils.data.DataLoader]:
-
     pl.seed_everything(seed)
 
-    datamodule = DataModule(
-        data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
-        features=[f'var{i}' for i in range(1, 8)],
-        targets=['GPP'],
-        training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
-        validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
-        context_size=1,
-        window_size=2,
-        batch_size=4,
-    )
+    datamodule = DataModule(data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+                            training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
+                            validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
+                            features=[f'var{i}' for i in range(1, 8)],
+                            targets=['GPP'],
+                            window_size=2,
+                            context_size=1,
+                            batch_size=4)
 
     custom_model = Linear(
         num_features=datamodule.num_features,
@@ -73,11 +69,10 @@ def run(
         ],
     )
 
-
     if rerun:
         trainer.fit(model, datamodule=datamodule)
 
-        #eval_loader = datamodule.test_dataloader()
+        # eval_loader = datamodule.test_dataloader()
         eval_loader = datamodule.val_dataloader()  # Use validation dataloader for testing.
         trainer.predict(ckpt_path='best', dataloaders=eval_loader)
     else:

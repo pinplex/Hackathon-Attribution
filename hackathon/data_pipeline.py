@@ -3,19 +3,29 @@
 Author: bkraft@bgc-jena.mpg.de
 """
 
-from matplotlib.pyplot import cla
-from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
-import xarray as xr
+import itertools as it
+from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
+import torch
+import xarray as xr
 from numpy.typing import ArrayLike
-
-from typing import Any, Optional
 from torch import Tensor
+from torch.utils.data import Dataset, DataLoader
+
+DEFAULT_FEATURE_LIST = ['vpd', 'FPAR', 'tp', 't2mmin', 'e', 'co2', 'ssrd']
+DEFAULT_TARGET_LIST = ['GPP']
+
+
+def _xr_to_tensor(ds: xr.Dataset) -> torch.Tensor:
+    return torch.from_numpy(ds.to_array().transpose(..., 'variable').values)
+
 
 class TSData(Dataset):
     """Defines a dataset."""
+
     def __init__(
             self,
             ds: xr.Dataset,
@@ -25,18 +35,17 @@ class TSData(Dataset):
             ts_context_size: int = 1,
             normalize: bool = True,
             norm_kind: str = 'mean_std',
-            norm_stats: dict[str, dict[str, float]] = {},
-            dtype: str = 'float32') -> None:
+            norm_stats: Optional[dict[str, xr.Dataset]] = None):
 
         """Time series dataset.
 
         Notes
         -----
-        Defines a dataset and sampling strategy. The time will be sampled in full year chunks of length `ts_window_size` years
-        with additional temporal context of `ts_context_size` years. While the time dimension is sampled with the window
-        scheme, each location is considered a separate sample. This gives num_windows x num_locations samples. Use
-        `ts_window_size=-1` to not subset the time dimension (but additional context of `ts_context_size` years will still) 
-        be used and dropped and may be dropped from predictions.
+        Defines a dataset and sampling strategy. The time will be sampled in full year chunks of length `ts_window_size`
+        years with additional temporal context of `ts_context_size` years. While the time dimension is sampled with the
+        window scheme, each location is considered a separate sample. This gives num_windows x num_locations samples.
+        Use `ts_window_size=-1` to not subset the time dimension (but additional context of `ts_context_size` years will
+         still) be used and dropped and may be dropped from predictions.
 
         This is the chunking for 6 years of data with `ts_context_size=1` and `ts_window_size=2`, 'w' for warmup and 'p'
         for prediction::
@@ -47,15 +56,15 @@ class TSData(Dataset):
               |wpp|
                |wpp|
 
-        This is the chunking for 6 years of data with `ts_context_size=1` and `ts_window_size=-1`, 'w' for warmup and 'p'
-        for prediction::
+        This is the chunking for 6 years of data with `ts_context_size=1` and `ts_window_size=-1`, 'w' for warmup and
+        'p' for prediction::
 
             |------|
             |wppppp|
 
         Return shape
         ------------
-        Returns a tuple of featurees, targets of shape (ts_window_size, num_features), (ts_window_size, num_targets)
+        Returns a tuple of features, targets of shape (ts_window_size, num_features), (ts_window_size, num_targets)
 
         Parameters
         ----------
@@ -67,26 +76,25 @@ class TSData(Dataset):
             A list of targets
         ts_window_size: int (default is -1)
             The sequence window size in YEARS that defines the sequence lengths of a sample.
-            With '-1', the full sequence is returned. The value must be >0.
+            With '-1', the full sequence is returned. The value must be >0 or -1.
         ts_context_size: int (default is 1)
-            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary depending on the number of days in the sequence (leap years).
+            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary
+            depending on the number of days in the sequence (leap years).
         normalize: bool (default is `True`)
-            Whether to normalize the features or not. Targets are NOT noramlized.
+            Whether to normalize the features or not. Targets are NOT normalized.
         norm_kind: str (default is `mean_std`)
             Kind of normalization technique: 'mean_std' or 'min_max'.
         norm_stats: dict[str, xr.Dataset],
-            Normalization stats of format {'mean': xr.Dataset, 'st': xr.Dataset}. If not passed, the stats will
+            Normalization stats of format {'mean': xr.Dataset, 'std': xr.Dataset}. If not passed, the stats will
             be inferred from the input datasets 'ds'.
-        dtype: str (default is 'float32')
-            The return type of the numpy arrays.
         """
+        super(TSData, self).__init__()
 
         self.ds = ds
         self.features = [features] if isinstance(features, str) else features
         self.targets = [targets] if isinstance(targets, str) else targets
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
-        self.dtype = dtype
         self.do_normalize = normalize
         self.norm_kind = norm_kind
 
@@ -101,13 +109,15 @@ class TSData(Dataset):
         else:
             self.norm_stats = norm_stats
 
-        time_coords = self._get_time_slices(
+        time_coords = TSData._get_time_slices(
             ds=self.ds,
             ts_window_size=self.ts_window_size,
             ts_context_size=self.ts_context_size)
         location_coords = self.ds.location.values
 
-        self.sample_coords = [(t, l) for t in time_coords for l in location_coords]
+        print(time_coords)
+
+        self.sample_coords = list(it.product(time_coords, location_coords))
 
     def __len__(self) -> int:
         """Returns the number of samples."""
@@ -143,7 +153,7 @@ class TSData(Dataset):
 
         if self.do_normalize:
             ds_f = self.normalize(ds_f, keys=self.features)
-            #ds_t = self.normalize(ds_t, keys=self.targets)
+            # ds_t = self.normalize(ds_t, keys=self.targets)
 
         data_sel = {
             'loc': location_coord,
@@ -151,26 +161,32 @@ class TSData(Dataset):
         }
 
         return {
-            'x': self._to_numpy(ds_f),
-            'y': self._to_numpy(ds_t),
+            'x': _xr_to_tensor(ds_f),
+            'y': _xr_to_tensor(ds_t),
             'data_sel': data_sel
         }
 
     def normalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
 
         if self.norm_kind == 'min_max':
-            return (ds[keys] - self.norm_stats['min'][keys]) / (self.norm_stats['max'][keys] - self.norm_stats['min'][keys])
-        
-        else: # mean_std
+            spread = (self.norm_stats['max'][keys] - self.norm_stats['min'][keys])
+            return (ds[keys] - self.norm_stats['min'][keys]) / spread
+
+        elif self.norm_kind == 'mean_std':
             return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
+        else:
+            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
 
     def denormalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
 
         if self.norm_kind == 'min_max':
-            return ds[keys] * (self.norm_stats['max'][keys] - self.norm_stats['min'][keys]) + self.norm_stats['min'][keys]
+            spread = self.norm_stats['max'][keys] - self.norm_stats['min'][keys]
+            return ds[keys] * spread + self.norm_stats['min'][keys]
 
-        else: # mean_std
+        elif self.norm_kind == 'mean_std':
             return ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
+        else:
+            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
 
     def norm_np(self, x: ArrayLike, key: str):
         """Normalize a numpy array.
@@ -178,7 +194,7 @@ class TSData(Dataset):
         Parameters
         ----------
         x: ArrayLike
-            The numpy array, should only contain one varaible (`key`).
+            The numpy array, should only contain one variable (`key`).
         key: str
             The name of the variable (must be present in `norm_stats`).
 
@@ -187,10 +203,13 @@ class TSData(Dataset):
         The denormalized numpy array.
         """
         if self.norm_kind == 'min_max':
-            return (x - self.norm_stats['min'][key].item()) / (self.norm_stats['max'][key].item() - self.norm_stats['min'][key].item())
+            spread = self.norm_stats['max'][key].item() - self.norm_stats['min'][key].item()
+            return (x - self.norm_stats['min'][key].item()) / spread
 
-        else: # mean_std
+        elif self.norm_kind == 'mean_std':
             return (x - self.norm_stats['mean'][key].item()) / self.norm_stats['std'][key].item()
+        else:
+            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
 
     def denorm_np(self, x: ArrayLike, key: str):
         """Denormalize a numpy array.
@@ -198,7 +217,7 @@ class TSData(Dataset):
         Parameters
         ----------
         x: ArrayLike
-            The numpy array, should only contain one varaible (`key`).
+            The numpy array, should only contain one variable (`key`).
         key: str
             The name of the variable (must be present in `norm_stats`).
 
@@ -206,13 +225,15 @@ class TSData(Dataset):
         -------
         The denormalized numpy array.
         """
-        
-        if self.norm_kind == 'min_max':
-            return x * (self.norm_stats['max'][key].item() 
-                - self.norm_stats['min'][key].item()) + self.norm_stats['min'][key].item() 
 
-        else: # mean_std
+        if self.norm_kind == 'min_max':
+            return x * (self.norm_stats['max'][key].item()
+                        - self.norm_stats['min'][key].item()) + self.norm_stats['min'][key].item()
+
+        elif self.norm_kind == 'mean_std':
             return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
+        else:
+            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
 
     def assign_predictions(self, pred: Tensor, data_sel: dict[str, Any]) -> None:
         """Assign predictions to the dataset (`self.ds`), handles denormalization.
@@ -222,19 +243,16 @@ class TSData(Dataset):
         pred: Tensor
             The predictions with shape (batch_size, seq_len, num_targets).
         data_sel: dict[str, Any]
-            The dictionary whihc is returned by the dataloader, containing location and time
+            The dictionary which is returned by the dataloader, containing location and time
             slices to assign the predictions to the right coordinates.
 
         """
 
-        if not (
-            pred.shape[0] ==
-            len(data_sel['loc']) ==
-            len(data_sel['warmup_start']) ==
-            len(data_sel['pred_start']) ==
-            len(data_sel['pred_end']) ==
-            len(data_sel['pred_len'])):
-
+        if not (pred.shape[0] == len(data_sel['loc']) ==
+                len(data_sel['warmup_start']) ==
+                len(data_sel['pred_start']) ==
+                len(data_sel['pred_end']) ==
+                len(data_sel['pred_len'])):
             raise AssertionError(
                 'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
             )
@@ -255,7 +273,7 @@ class TSData(Dataset):
 
             for target_i, target in enumerate(self.targets):
                 p = pred[b, -data_sel['pred_len'][b]:, target_i]
-                #if self.do_normalize:
+                # if self.do_normalize:
                 #    p = self.denorm_np(p, target)
                 self.ds[target + '_hat'].loc[sel_assign] = p
 
@@ -265,8 +283,8 @@ class TSData(Dataset):
             ds: xr.Dataset,
             features: list[str],
             targets: list[str],
-            norm_kind: str = 'mean_std') -> xr.Dataset:
-        
+            norm_kind: str = 'mean_std') -> dict[str, xr.Dataset]:
+
         if norm_kind == 'min_max':
             norm_stats = {
                 'min': ds[features + targets].min().compute(),
@@ -276,7 +294,7 @@ class TSData(Dataset):
         elif norm_kind == 'mean_std':
             norm_stats = {
                 'mean': ds[features + targets].mean().compute(),
-                'std': ds[features + targets].mean().compute(),
+                'std': ds[features + targets].std().compute(),
             }
         else:
             raise ValueError(
@@ -285,10 +303,8 @@ class TSData(Dataset):
 
         return norm_stats
 
-    def _to_numpy(self, ds: xr.Dataset) -> ArrayLike:
-        return ds.to_array().transpose(..., 'variable').values.astype(self.dtype)
-
-    def _get_time_slices(self, ds: xr.Dataset, ts_window_size: int, ts_context_size: int) -> list[dict[str, Any]]:
+    @classmethod
+    def _get_time_slices(cls, ds: xr.Dataset, ts_window_size: int, ts_context_size: int) -> list[dict[str, Any]]:
         """Get window timestamps of samples with len `ts_window_size` and additional context `ts_context_size`.
 
         Note that the windows cover full years only, i.e., always start at first day of the year and end at last. The
@@ -321,15 +337,15 @@ class TSData(Dataset):
             ts_window_size = end_year - start_year - ts_context_size + 1
 
         if (ts_context_size + ts_window_size) > (end_year - start_year + 1):
-            raise RuntimeError(
-                f'args `ts_window_size` ({ts_window_size}) and `ts_context_size` ({ts_context_size}) with {end_year - start_year} years lead to zeros samples.'
-            )
+            err_msg = (f'args `ts_window_size` ({ts_window_size}) and '
+                       f'`ts_context_size` ({ts_context_size}) with '
+                       f'{end_year - start_year} years lead to zeros samples.')
+
+            raise RuntimeError(err_msg)
 
         for year in range(start_year, end_year + 1):
             if len(ds.time.sel(time=str(year))) not in [365, 366]:
-                raise ValueError(
-                    f'can only handle full years, but some days seem to be missing for the year {year}.'
-                )
+                raise ValueError(f'can only handle full years, but some days seem to be missing for the year {year}.')
 
         if ts_context_size < 1:
             raise ValueError(
@@ -350,7 +366,7 @@ class TSData(Dataset):
             # The end of the prediction period.
             pred_end = f'{year + ts_context_size + ts_window_size - 1}-12-31'
             # The start of the warmup period (is before pred_start).
-            warmup_start = pd.Timestamp(pred_end) - pd.Timedelta(max_seq_len - 1, 'D')
+            warmup_start = pd.to_datetime(pred_end) - pd.Timedelta(max_seq_len - 1, 'D')
 
             ts = dict(
                 # Use this for selection of the sequence start.
@@ -381,7 +397,7 @@ class TSData(Dataset):
         if len(self.ds.time) < self.ts_window_size:
             raise ValueError(
                 f'`ts_window_size` ({self.ts_window_size}) must be smaller or equal to the number '
-                f'of time stepes ({len(self.ds.time)})'
+                f'of time steps ({len(self.ds.time)})'
             )
 
     @property
@@ -394,21 +410,21 @@ class TSData(Dataset):
         """Returns number of targets"""
         return len(self.targets)
 
+
 class DataModule(pl.LightningDataModule):
     """Defines a lightning data module."""
-    def __init__(
-            self,
-            data_path: str,
-            features: list[str],
-            targets: list[str],
-            training_subset: dict[str, Any],
-            validation_subset: dict[str, Any],
-            test_subset: Optional[dict[str, Any]] = None,
-            window_size: int = 10,
-            context_size: int = 1,
-            load_data: bool = True,
-            **dataloader_kwargs) -> None:
-        """Initilize lightning data module.
+
+    def __init__(self, data_path: str,
+                 training_subset: dict[str, Any],
+                 validation_subset: dict[str, Any],
+                 test_subset: Optional[dict[str, Any]] = None,
+                 features: list[str] = None,
+                 targets: list[str] = None,
+                 window_size: int = 10,
+                 context_size: int = 1,
+                 load_data: bool = True,
+                 **dataloader_kwargs) -> None:
+        """Initialize lightning data module.
 
         Note
         ----
@@ -419,17 +435,17 @@ class DataModule(pl.LightningDataModule):
         ----------
         data_path: str
             The data path to the NetCDF file.
-        features: list[str]
-            A list of features.
-        targets: list[str]
-            A list of targets.
         training_subset: dict[str, Any]
             The data subset that defines the training set. Keys correspond to xarray.Dataset
-            dimentions, values to the selection. E.g.: `{time=slice('2002', '2004'), site=[0, 1, 2]}`.
+            dimensions, values to the selection. E.g.: `{'time':slice('2002', '2004'), 'location':[0, 1, 2]}`.
         validation_subset: dict[str, Any]
             Same as 'training_subset' for validations set.
         test_subset: dict[str, Any]
             Same as 'training_subset' for test set.
+        features: Optional[list[str]]
+            A list of features.
+        targets: Optional[list[str]]
+            A list of targets.
         window_size: int
             The window size in years used for training. For validation and test, the full sequence is
             used (also see `context size`).
@@ -442,10 +458,12 @@ class DataModule(pl.LightningDataModule):
             Keyword arguments passed to 'DataLoader' (e.g., batch_size) for all the sets. Note that
             the argument `shuffle` is already handled (`True` for training, `False` else).
         """
+        super(DataModule, self).__init__()
 
-        self.ds = xr.open_dataset(data_path)[features + targets]
-        self.features = features
-        self.targets = targets
+        self.features = features if features else DEFAULT_FEATURE_LIST
+        self.targets = targets if targets else DEFAULT_TARGET_LIST
+
+        self.ds = xr.open_dataset(data_path)[self.features + self.targets]
 
         self.load_data = load_data
 
@@ -460,64 +478,30 @@ class DataModule(pl.LightningDataModule):
 
         # Create empty target variables with naming `<target>_hat`.
         for target in self.targets:
-            self.ds[target + '_hat'] = self.ds[target].copy() * np.nan
+            self.ds[target + '_hat'] = xr.full_like(self.ds[target], np.nan)
 
-        self.ds['code'] = xr.zeros_like(self.ds[self.targets[0]]) - 1
+        self.ds['code'] = xr.full_like(self.ds[self.targets[0]], -1)
+
+        self.norm_stats = None
 
     def setup(self, stage: Optional[str] = None):
-        ds = self.ds.sel(**self.training_subset)
+        training_set = self.ds.sel(**self.training_subset)
         self.norm_stats = TSData.get_norm_stats(
-            ds=ds,
+            ds=training_set,
             features=self.features,
             targets=self.targets,
             norm_kind='mean_std')
 
-    def train_dataloader(self) -> Dataset:
+    def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
+        return self._create_dataloader(self.training_subset, shuffle=False)
 
-        self._assert_norm_stats()
-
-        ds = self.ds.sel(**self.training_subset)
-
-        if self.load_data:
-            ds = ds.load()
-
-        train_split = TSData(
-            ds=ds,
-            features=self.features,
-            targets=self.targets,
-            ts_window_size=self.window_size,
-            ts_context_size=self.context_size,
-            norm_stats=self.norm_stats
-            )
-
-        return DataLoader(train_split, shuffle=True, **self.dataloader_kwargs)
-
-    def val_dataloader(self) -> Dataset:
+    def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
+        return self._create_dataloader(self.validation_subset, shuffle=False)
 
-        self._assert_norm_stats()
-
-        ds = self.ds.sel(**self.validation_subset)
-
-        if self.load_data:
-            ds = ds.load()
-
-        val_split = TSData(
-            ds=ds,
-            features=self.features,
-            targets=self.targets,
-            ts_window_size=-1,
-            ts_context_size=self.context_size,
-            norm_stats=self.norm_stats
-            )
-
-        return DataLoader(val_split, shuffle=False, **self.dataloader_kwargs)
-
-    def test_dataloader(self) -> Dataset:
+    def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
-
-        self._assert_norm_stats()
 
         class CheatingError(Exception):
             pass
@@ -526,30 +510,31 @@ class DataModule(pl.LightningDataModule):
             'You are not allowed to use the test set! Anzeige ist raus!'
         )
 
-        ds = self.ds.sel(**self.test_dataloader)
+        return self._create_dataloader(self.test_dataloader, shuffle=False)
+
+    def predict_dataloader(self) -> DataLoader:
+        return self.test_dataloader()
+
+    def _create_dataloader(self, ds_selector, shuffle) -> DataLoader:
+        self._assert_norm_stats()
+        ds = self.ds.sel(**ds_selector)
 
         if self.load_data:
             ds = ds.load()
 
-        test_split = TSData(
+        dataset = TSData(
             ds=ds,
             features=self.features,
             targets=self.targets,
-            ts_window_size=-1,
+            ts_window_size=self.window_size,
             ts_context_size=self.context_size,
             norm_stats=self.norm_stats
-            )
-
-        return DataLoader(test_split, shuffle=False, **self.dataloader_kwargs)
-
-    def predict_dataloader(self) -> Dataset:
-        return self.test_dataloader()
+        )
+        return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
 
     def _assert_norm_stats(self):
-        if not self.norm_stats:
-            raise AssertionError(
-                '`norm_stats` have not been registered, should have been done in in the background. Bug?'
-            )
+        assert self.norm_stats, ('`norm_stats` have not been registered, '
+                                 'should have been done in in the background. Bug?')
 
     @property
     def num_features(self) -> int:
