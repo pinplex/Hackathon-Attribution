@@ -8,6 +8,8 @@ Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11
 """
 #%%
 ## import modules
+import pickle
+from random import shuffle
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -22,25 +24,26 @@ Tmin_min = -7 # K
 Tmin_max = 9.50 # K
 VPD_min = 650 # Pa
 VPD_max = 2400 # Pa; orig: 2400
-bSWC_size = 160 # bucket size in mm for the upper 1m soil depth
+bSWC_size = 200 # bucket size in mm for the upper 1m soil depth
 SWC_min = 25 # mm; old: 0.1 #, m3 m-3; 25 mm ala Markus ?
 SWC_max = 100 # mm; old: 0.25 # m3 m-3; 100 mm ala Markus ?
 b = 0.383 # Power-Law 
 
 #%% define input variables
-kind = 'OBS' # 'CMIP6'
+kind = 'CMIP6' # 'CMIP6' or 'OBS'
 
 # for CMIP6
 simulation = 'historical'# 'ssp585'
 ESM = 'MPI-ESM1-2-LR'
 
 if kind == 'CMIP6':
-    infile = 'data/'+kind+'/predictor-variables.nc'
-    outfile = 'data/'+kind+'/predictor-variables+GPP.nc'
+    infile = 'data/'+kind+'/predictor-variables_'+simulation+'.nc'
+    outfile = 'data/'+kind+'/predictor-variables_'+simulation+'+'+'GPP.nc'
+    
 else:
     infile = 'data/'+kind+'/predictor-variables.nc'
     outfile = 'data/'+kind+'/predictor-variables+GPP.nc'
-
+    
 #%% MOD17 functions
 #%% VPD scalar
 def calc_f_VPD(VPD, VPD_min=VPD_min, VPD_max=VPD_max):
@@ -84,16 +87,18 @@ def calc_APAR(SWRad, FPAR):
     return APAR
 
 #%% Bucket Model for Surface Water Content
-def calc_SWC_bucket(p, et, S_max=160):
+def calc_SWC_bucket(p, et, S_max=200):
     
     P_minus_E = p + et # compute P minus E (et is defined with negative sign)
 
+    ## copy data structure and set to 0
     S = P_minus_E.copy(deep=True)
+    S = S * 0
     
-    S_old = S[0] + S_max # completely fill up bucket at the beginning
+    S_old = S.isel(time=0) + S_max # completely fill up bucket at the beginning
     
     for i in range(len(P_minus_E['time'])):
-        S_new = S_old + P_minus_E[i] # add or remove water from the bucket
+        S_new = S_old + P_minus_E.isel(time=i) # add or remove water from the bucket
         S[i] = xr.where(S_new > S_max, S_max, S_new)
         S_old = S[i]
 
@@ -139,6 +144,13 @@ if __name__ == "__main__":
 
     #% read data
     ds = xr.open_dataset(infile)
+    
+    ## make sure time is in first place in the dimension order
+    ds = ds.transpose("time", ...)
+    
+    ## check if ET is defined negative
+    if ds['e'].median() > 0:
+        ds['e'] = ds['e'] * -1
 
     ## get predictor variables
     Tmin = ds['t2mmin']
@@ -147,11 +159,11 @@ if __name__ == "__main__":
     FPAR = ds['FPAR']
     CO2 = ds['co2']
 
-    #%% calc Soil Moisture based on Precipitation and Evapotranspiration with a surface bucket
+    #% calc Soil Moisture based on Precipitation and Evapotranspiration with a surface bucket
     ds['bSWC'] = calc_SWC_bucket(p=ds['tp'], et=ds['e'], S_max=bSWC_size)
     SWC = ds['bSWC']
 
-    #%% calc GPP
+    #% calc GPP
     ds['GPP'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, CO2)
     #ds['GPP_constant-Tmin'] = calc_GPP(10, VPD, SWRad, FPAR, SWC, CO2)
     #ds['GPP_constant-SWrad'] = calc_GPP(Tmin, VPD, 15, FPAR, SWC, CO2)
@@ -161,11 +173,11 @@ if __name__ == "__main__":
     #ds['GPP_constant-CO2'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, 340) ## CO2 at 1982
 
 
-    #%%make plot
-    variables = ['t2mmin', 'co2', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'bSWC',
-                 'GPP']#, 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
+    #%% make plot
+    variables = ['t2mmin', 'bSWC', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 
+                 'GPP']#, 'bSWC', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
                  #'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
-    df = ds.sel(time='2003', location=1).to_dataframe().reset_index()
+    df = ds.sel(time='1970', cluster=2, location=13).to_dataframe().reset_index().set_index('time')
 
     df[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
     plt.show()
@@ -177,10 +189,23 @@ if __name__ == "__main__":
     diff[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
     plt.show()
     
-    (diff['GPP'] - diff['GPP_constant-CO2']).plot()
+    #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
     plt.show()
+    
+    #%% disguise variables
+    vrs = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'sfcWind']
+    shuffle(vrs)
+
+    mapping = {}
+    for i in range(len(vrs)):
+        ds = ds.rename({vrs[i]:'var'+str(i+1)})
+        mapping[vrs[i]] = 'var'+str(i+1)
+        
+    ## store mapping
+    with open('variable_mapping.pickle', 'wb') as handle:
+        pickle.dump(mapping, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     #%%save data to disk
     ds = ds.astype('float32')
-    ds = ds.drop('sSWC')
-    ds.sel(time=slice(None,'2013')).to_netcdf(outfile)
+    vrs = ['var'+str(i+1) for i in range(len(vrs))] + ['co2', 'GPP']
+    ds[vrs].sel(cluster=slice(0,1)).to_netcdf(outfile) # cluster 2 is for testing
