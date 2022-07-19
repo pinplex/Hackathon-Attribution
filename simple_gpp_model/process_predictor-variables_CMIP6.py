@@ -117,22 +117,24 @@ for i in range(len(locations)):
     ## add location / cluster identifier
     predictors['location'] = i + 1
     
-    if i <= 4:
-        predictors['cluster'] = 0
+    # if i <= 4:
+    #     predictors['cluster'] = 0
         
-    elif (i > 4) & (i <= 9):
-        predictors['cluster'] = 1
+    # elif (i > 4) & (i <= 9):
+    #     predictors['cluster'] = 1
         
-    elif i > 9:
-        predictors['cluster'] = 2
+    # elif i > 9:
+    #     predictors['cluster'] = 2
 
     ## convert to xarray
-    predictors = predictors.set_index([predictors.index, predictors['location'], predictors['cluster']]).drop(['location','cluster'], axis=1)
+    predictors = predictors.set_index([predictors.index, predictors['location']]).drop(['location'], axis=1)
     predictors = predictors.to_xarray()
     d[i] = predictors
 
 ## Combine and save to disk
 ds = xr.merge(d.values(), compat='no_conflicts')
+
+ds = ds.assign_coords(cluster=('location', np.arange(1, 4).repeat(4)))
 
 # rename variables to ERA5 terminology
 ds = ds.rename({'rsds': 'ssrd', 'mrso': 'SWC', 'mrsos': 'sSWC','tasmin': 't2mmin', 'fapar': 'FPAR', 'pr': 'tp', 'hfls': 'e'})
