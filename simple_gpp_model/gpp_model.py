@@ -208,4 +208,4 @@ if __name__ == "__main__":
     #%%save data to disk
     ds = ds.astype('float32')
     vrs = ['var'+str(i+1) for i in range(len(vrs))] + ['co2', 'GPP']
-    ds[vrs].sel(cluster=slice(0,1)).to_netcdf(outfile) # cluster 2 is for testing
+    ds[vrs].sel(cluster=slice(0,1)).sel(location=slice(1,10)).to_netcdf(outfile) # cluster 2 is for testing

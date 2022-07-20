@@ -134,7 +134,8 @@ for i in range(len(locations)):
 ## Combine and save to disk
 ds = xr.merge(d.values(), compat='no_conflicts')
 
-ds = ds.assign_coords(cluster=('location', np.arange(1, 4).repeat(4)))
+## add cluster coordinate
+ds = ds.assign_coords(cluster=('location', np.arange(1, 4).repeat(5)))
 
 # rename variables to ERA5 terminology
 ds = ds.rename({'rsds': 'ssrd', 'mrso': 'SWC', 'mrsos': 'sSWC','tasmin': 't2mmin', 'fapar': 'FPAR', 'pr': 'tp', 'hfls': 'e'})
@@ -159,13 +160,15 @@ ds.to_netcdf('data/CMIP6/predictor-variables_'+simulation+'.nc')
 #to_zarr('data/OBS/predictor-variables.zarr')
 
 #%% reduce and remove lat + lon
-#%%
-# ds = xr.open_dataset('data/CMIP6/predictor-variables_'+simulation+'.nc')
+#%% somepost-processing
+# ds = xr.open_dataset('data/CMIP6/predictor-variables_'+simulation+'+GPP.nc')
 
 # locations = ds.location.to_numpy()
 # d = {}
 # for i in locations:
-#     d[i] = ds.sel(location=i).dropna('lat', how='all').dropna('lon', how='all').squeeze().drop(['lat', 'lon'])
+#     # d[i] = ds.sel(location=i).dropna('lat', how='all').dropna('lon', how='all').squeeze().drop(['lat', 'lon'])
+#     d[i] = ds.sel(location=i).dropna('cluster', how='all').squeeze().drop(['cluster'])
 
 # ds = xr.concat(d.values(), dim='location')
+# ds = ds.assign_coords(cluster=('location', np.arange(1, 4).repeat(5)))
 # ds.to_netcdf('predictor-variables_'+simulation+'_reduced.nc')
