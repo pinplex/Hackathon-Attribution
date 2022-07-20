@@ -116,15 +116,6 @@ for i in range(len(locations)):
     
     ## add location / cluster identifier
     predictors['location'] = i + 1
-    
-    # if i <= 4:
-    #     predictors['cluster'] = 0
-        
-    # elif (i > 4) & (i <= 9):
-    #     predictors['cluster'] = 1
-        
-    # elif i > 9:
-    #     predictors['cluster'] = 2
 
     ## convert to xarray
     predictors = predictors.set_index([predictors.index, predictors['location']]).drop(['location'], axis=1)
@@ -160,7 +151,7 @@ ds.to_netcdf('data/CMIP6/predictor-variables_'+simulation+'.nc')
 #to_zarr('data/OBS/predictor-variables.zarr')
 
 #%% reduce and remove lat + lon
-#%% somepost-processing
+#%% some post-processing
 # ds = xr.open_dataset('data/CMIP6/predictor-variables_'+simulation+'+GPP.nc')
 
 # locations = ds.location.to_numpy()

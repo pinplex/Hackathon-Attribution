@@ -171,7 +171,9 @@ if __name__ == "__main__":
     #ds['GPP_constant-FPAR'] = calc_GPP(Tmin, VPD, SWRad, 0.5, SWC, CO2)
     #ds['GPP_constant-SWC'] = calc_GPP(Tmin, VPD, SWRad, FPAR, 100, CO2)
     #ds['GPP_constant-CO2'] = calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, 340) ## CO2 at 1982
-
+    
+    #%% add random noise; better: noise should scale with the signal
+    ds['GPP'] = ds['GPP'] + np.abs(np.random.normal(loc=0, scale=0.5, size=ds['GPP'].shape))
 
     #%% make plot
     variables = ['t2mmin', 'bSWC', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 
