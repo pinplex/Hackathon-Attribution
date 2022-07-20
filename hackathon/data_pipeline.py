@@ -9,7 +9,6 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
-import torch
 import xarray as xr
 from numpy.typing import ArrayLike
 from torch import Tensor
@@ -17,10 +16,6 @@ from torch.utils.data import Dataset, DataLoader
 
 DEFAULT_FEATURE_LIST = ['vpd', 'FPAR', 'tp', 't2mmin', 'e', 'co2', 'ssrd']
 DEFAULT_TARGET_LIST = ['GPP']
-
-
-def _xr_to_tensor(ds: xr.Dataset) -> torch.Tensor:
-    return torch.from_numpy(ds.to_array().transpose(..., 'variable').values)
 
 
 class TSData(Dataset):
@@ -35,7 +30,8 @@ class TSData(Dataset):
             ts_context_size: int = 1,
             normalize: bool = True,
             norm_kind: str = 'mean_std',
-            norm_stats: Optional[dict[str, xr.Dataset]] = None):
+            norm_stats: Optional[dict[str, xr.Dataset]] = None,
+            dtype: str = 'float32'):
 
         """Time series dataset.
 
@@ -95,6 +91,7 @@ class TSData(Dataset):
         self.targets = [targets] if isinstance(targets, str) else targets
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
+        self.dtype = dtype
         self.do_normalize = normalize
         self.norm_kind = norm_kind
 
@@ -159,8 +156,8 @@ class TSData(Dataset):
         }
 
         return {
-            'x': _xr_to_tensor(ds_f),
-            'y': _xr_to_tensor(ds_t),
+            'x': self._to_numpy(ds_f),
+            'y': self._to_numpy(ds_t),
             'data_sel': data_sel
         }
 
@@ -246,11 +243,8 @@ class TSData(Dataset):
 
         """
 
-        if not (pred.shape[0] == len(data_sel['loc']) ==
-                len(data_sel['warmup_start']) ==
-                len(data_sel['pred_start']) ==
-                len(data_sel['pred_end']) ==
-                len(data_sel['pred_len'])):
+        time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+        if any((len(data_sel[key]) != pred.shape[0] for key in time_sel_keys)):
             raise AssertionError(
                 'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
             )
@@ -300,6 +294,9 @@ class TSData(Dataset):
             )
 
         return norm_stats
+
+    def _to_numpy(self, ds: xr.Dataset) -> ArrayLike:
+        return ds.to_array().transpose(..., 'variable').values.astype(self.dtype)
 
     @classmethod
     def _get_time_slices(cls, ds: xr.Dataset, ts_window_size: int, ts_context_size: int) -> list[dict[str, Any]]:

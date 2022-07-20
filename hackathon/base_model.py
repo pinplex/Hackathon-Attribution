@@ -1,7 +1,7 @@
 import torch
 import pytorch_lightning as pl
 
-from typing import Callable, Any, Union, Optional
+from typing import Any, Union, Optional
 from torch import Tensor
 
 
@@ -19,7 +19,7 @@ class BaseModel(pl.LightningModule):
 
         self.loss_fn = torch.nn.MSELoss()
 
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['custom_model'])
 
     def common_step(self, batch: Union[Tensor, Tensor, dict[str, Any]],
                     step_name: Optional[str] = None) -> tuple[Tensor, Tensor]:

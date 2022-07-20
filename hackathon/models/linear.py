@@ -8,15 +8,15 @@ import os
 import shutil
 from glob import glob
 
-from hackathon.data_pipeline import DataModule
-from hackathon.base_model import BaseModel
+from hackathon import DataModule, DEFAULT_FEATURE_LIST, DEFAULT_TARGET_LIST
+from hackathon import BaseModel
 
 ROOT_DIR = f'./logs/{os.path.basename(__file__).split(".py")[0]}'
 
 
 class Linear(torch.nn.Module):
-    def __init__(self, num_features: int, num_targets: int) -> None:
-        super().__init__()
+    def __init__(self, num_features: int, num_targets: int):
+        super(Linear, self).__init__()
 
         self.linear = torch.nn.Linear(num_features, num_targets)
 
@@ -32,14 +32,16 @@ def run(
         seed=None) -> tuple[pl.LightningModule, torch.utils.data.DataLoader]:
     pl.seed_everything(seed)
 
-    datamodule = DataModule(data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
-                            training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
-                            validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
-                            features=[f'var{i}' for i in range(1, 8)],
-                            targets=['GPP'],
+    dataloader_kwargs = dict(batch_size=4, num_workers=4)
+
+    datamodule = DataModule(data_path='./simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
+                            training_subset={'location': [1, 2], 'time': slice('1984', '2000')},
+                            validation_subset={'location': [3, 4], 'time': slice('1984', '2000')},
+                            features=DEFAULT_FEATURE_LIST,
+                            targets=DEFAULT_TARGET_LIST,
                             window_size=2,
                             context_size=1,
-                            batch_size=4)
+                            **dataloader_kwargs)
 
     custom_model = Linear(
         num_features=datamodule.num_features,
@@ -52,9 +54,9 @@ def run(
         weight_decay=0.0
     )
 
-    # DON'CHANGE ------
+    # DON'T CHANGE ------
     logger = TensorBoardLogger(save_dir=root_dir, name='', version=version)
-    earlystopper = EarlyStopping(patience=10, monitor='val_loss', mode='min')
+    early_stopper = EarlyStopping(patience=10, monitor='val_loss', mode='min')
     checkpointer = ModelCheckpoint(save_top_k=1, monitor='val_loss')
     if os.path.isdir(logger.log_dir) and rerun:
         shutil.rmtree(logger.log_dir)
@@ -64,9 +66,10 @@ def run(
         logger=logger,
         default_root_dir=root_dir,
         callbacks=[
-            earlystopper,
+            early_stopper,
             checkpointer
         ],
+        max_epochs=-1
     )
 
     if rerun:
