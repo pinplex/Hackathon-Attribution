@@ -421,10 +421,18 @@ class DataModule(pl.LightningDataModule):
                  **dataloader_kwargs) -> None:
         """Initialize lightning data module.
 
-        Note
-        ----
-        Before writing predictions using `trainer.predict`, set the attribute 'DataModule.assign_code'
-        to later differentiate between different cross validation sets. See `DataModule.assign_predictions`.
+        Return shapes
+        -------------
+        The dataloaders return a dict of features (x), targets (y), and data_sel:
+            x: (batch, seq_len, num_features,)
+            y: (batch, seq_len, num_targets,)
+            data_sel: {
+                'loc': (batch,),
+                'warmup_start': (batch,),
+                'pred_start': (batch,),
+                'pred_end': (batch,),
+                'pred_end': (batch,)
+            }
 
         Parameters
         ----------
@@ -489,11 +497,11 @@ class DataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
-        return self._create_dataloader(self.training_subset, shuffle=False)
+        return self._create_dataloader(self.training_subset, shuffle=False, return_full_seq=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
-        return self._create_dataloader(self.validation_subset, shuffle=False)
+        return self._create_dataloader(self.validation_subset, shuffle=False, return_full_seq=True)
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
@@ -505,12 +513,12 @@ class DataModule(pl.LightningDataModule):
             'You are not allowed to use the test set! Anzeige ist raus!'
         )
 
-        return self._create_dataloader(self.test_dataloader, shuffle=False)
+        return self._create_dataloader(self.test_dataloader, shuffle=False, return_full_seq=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
 
-    def _create_dataloader(self, ds_selector, shuffle) -> DataLoader:
+    def _create_dataloader(self, ds_selector: dict[str, Any], shuffle: bool, return_full_seq: bool) -> DataLoader:
         self._assert_norm_stats()
         ds = self.ds.sel(**ds_selector)
 
@@ -521,7 +529,7 @@ class DataModule(pl.LightningDataModule):
             ds=ds,
             features=self.features,
             targets=self.targets,
-            ts_window_size=self.window_size,
+            ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
             norm_stats=self.norm_stats
         )

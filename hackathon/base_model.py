@@ -33,12 +33,12 @@ class BaseModel(pl.LightningModule):
         loss = self.loss_fn(y_hat[:, -pred_len:, :], y[:, -pred_len:, :])
 
         if step_name:
-            self.log(f'{step_name}_loss', loss, on_step=False, on_epoch=True)
+            self.log(f'{step_name}_loss', loss, on_step=True if step_name == 'train' else False, on_epoch=True)
         return y_hat, loss
 
     def training_step(
             self,
-            batch: Union[Tensor, Tensor, dict[str, Any]],
+            batch: tuple[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> Tensor:
         _, loss = self.common_step(batch, 'train')
 
@@ -46,19 +46,19 @@ class BaseModel(pl.LightningModule):
 
     def validation_step(
             self,
-            batch: Union[Tensor, Tensor, dict[str, Any]],
+            batch: tuple[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> None:
         self.common_step(batch, 'val')
 
     def test_step(
             self,
-            batch: Union[Tensor, Tensor, dict[str, Any]],
+            batch: tuple[Tensor, Tensor, dict[str, Any]],
             batch_idx: int) -> None:
         _, loss = self.common_step(batch, 'test')
 
     def predict_step(
             self,
-            batch: Union[Tensor, Tensor, dict[str, Any]],
+            batch: tuple[Tensor, Tensor, Tensor],
             batch_idx: int,
             dataloader_idx: int = 0) -> None:
         y_hat, _ = self.common_step(batch)
