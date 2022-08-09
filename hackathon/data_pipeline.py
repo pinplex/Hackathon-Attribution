@@ -14,9 +14,6 @@ from numpy.typing import ArrayLike
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 
-DEFAULT_FEATURE_LIST = ['vpd', 'FPAR', 'tp', 't2mmin', 'e', 'co2', 'ssrd']
-DEFAULT_TARGET_LIST = ['GPP']
-
 
 class TSData(Dataset):
     """Defines a dataset."""

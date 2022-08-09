@@ -1,15 +1,16 @@
-import torch
-from torch import Tensor
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import os
 import shutil
 from glob import glob
 
-from hackathon import DataModule, DEFAULT_FEATURE_LIST, DEFAULT_TARGET_LIST
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from torch import Tensor
+
 from hackathon import BaseModel
+from hackathon import DataModule
 
 ROOT_DIR = f'./logs/{os.path.basename(__file__).split(".py")[0]}'
 
@@ -34,11 +35,11 @@ def run(
 
     dataloader_kwargs = dict(batch_size=4, num_workers=4)
 
-    datamodule = DataModule(data_path='./simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
-                            training_subset={'location': [1, 2], 'time': slice('1984', '2000')},
-                            validation_subset={'location': [3, 4], 'time': slice('1984', '2000')},
-                            features=DEFAULT_FEATURE_LIST,
-                            targets=DEFAULT_TARGET_LIST,
+    datamodule = DataModule(data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+                            training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
+                            validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
+                            features=[f'var{i}' for i in range(1, 8)] + ['co2'],
+                            targets=['GPP'],
                             window_size=2,
                             context_size=1,
                             **dataloader_kwargs)
