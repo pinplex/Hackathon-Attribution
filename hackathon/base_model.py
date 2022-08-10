@@ -33,7 +33,7 @@ class BaseModel(pl.LightningModule):
         loss = self.loss_fn(y_hat[:, -pred_len:, :], y[:, -pred_len:, :])
 
         if step_name:
-            self.log(f'{step_name}_loss', loss, on_step=step_name == 'train', on_epoch=True)
+            self.log(f'{step_name}_loss', loss, on_step=step_name == 'train', on_epoch=True, batch_size=x.shape[0])
         return y_hat, loss
 
     def training_step(
