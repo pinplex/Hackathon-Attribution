@@ -34,7 +34,7 @@ def run(
 
     dataloader_kwargs = dict(batch_size=4, num_workers=4)
 
-    datamodule = DataModule(data_path='./simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
+    datamodule = DataModule(data_path='../simple_gpp_model/data/OBS/predictor-variables+GPP.nc',
                             training_subset={'location': [1, 2], 'time': slice('1984', '2000')},
                             validation_subset={'location': [3, 4], 'time': slice('1984', '2000')},
                             features=DEFAULT_FEATURE_LIST,
