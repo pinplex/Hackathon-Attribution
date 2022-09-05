@@ -14,9 +14,6 @@ from numpy.typing import ArrayLike
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 
-DEFAULT_FEATURE_LIST = ['vpd', 'FPAR', 'tp', 't2mmin', 'e', 'co2', 'ssrd']
-DEFAULT_TARGET_LIST = ['GPP']
-
 
 class TSData(Dataset):
     """Defines a dataset."""
@@ -410,11 +407,11 @@ class DataModule(pl.LightningDataModule):
     """Defines a lightning data module."""
 
     def __init__(self, data_path: str,
+                 features: list[str],
+                 targets: list[str],
                  training_subset: dict[str, Any],
                  validation_subset: dict[str, Any],
                  test_subset: Optional[dict[str, Any]] = None,
-                 features: list[str] = None,
-                 targets: list[str] = None,
                  window_size: int = 10,
                  context_size: int = 1,
                  load_data: bool = True,
@@ -438,6 +435,10 @@ class DataModule(pl.LightningDataModule):
         ----------
         data_path: str
             The data path to the NetCDF file.
+        features: list[str]
+            A list of features.
+        targets: list[str]
+            A list of targets.
         training_subset: dict[str, Any]
             The data subset that defines the training set. Keys correspond to xarray.Dataset
             dimensions, values to the selection. E.g.: `{'time':slice('2002', '2004'), 'location':[0, 1, 2]}`.
@@ -445,10 +446,6 @@ class DataModule(pl.LightningDataModule):
             Same as 'training_subset' for validations set.
         test_subset: dict[str, Any]
             Same as 'training_subset' for test set.
-        features: Optional[list[str]]
-            A list of features.
-        targets: Optional[list[str]]
-            A list of targets.
         window_size: int
             The window size in years used for training. For validation and test, the full sequence is
             used (also see `context size`).
@@ -462,9 +459,8 @@ class DataModule(pl.LightningDataModule):
             the argument `shuffle` is already handled (`True` for training, `False` else).
         """
         super(DataModule, self).__init__()
-
-        self.features = features if features else DEFAULT_FEATURE_LIST
-        self.targets = targets if targets else DEFAULT_TARGET_LIST
+        self.features = features
+        self.targets = targets
 
         self.ds = xr.open_dataset(data_path)[self.features + self.targets]
 
