@@ -137,7 +137,7 @@ class BaseRunner(object):
         A pl.Trainer.
         """
         logger = TensorBoardLogger(save_dir=self.log_dir, name='', version=version)
-        early_stopper = EarlyStopping(patience=patience, monitor='val_loss', mode='min')
+        early_stopper = EarlyStopping(patience=patience, monitor='val_loss', mode='min', verbose=True)
         checkpointer = ModelCheckpoint(save_top_k=1, monitor='val_loss')
 
         trainer = pl.Trainer(
@@ -179,6 +179,7 @@ class BaseRunner(object):
     def predict(
             self,
             trainer: pl.Trainer,
+            model: BaseModel,
             datamodule: DataModule,
             version: str) -> xr.Dataset:
         """Make predictions with the `datamodule.predict_dataloader`.
@@ -186,6 +187,7 @@ class BaseRunner(object):
         Parameters
         ----------
         trainer: a trainer on which '.fit(...)' has been run before.
+        model: a trained model.
         datamodule: the datamodule.
         version: The run version (e.g., 'fold_00' if you run a cross-validation, or 'final').
             Predictions will be saved to `log_dir/version/predictions.nc`. Make sure to match with
@@ -193,7 +195,7 @@ class BaseRunner(object):
         """
 
         dataloader = datamodule.predict_dataloader()
-        trainer.predict(ckpt_path='best', dataloaders=dataloader)
+        trainer.predict(model=model, ckpt_path='best', dataloaders=dataloader)
         save_path = os.path.join(self.log_dir, version, 'predictions.nc')
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         dataloader.dataset.ds.to_netcdf(save_path)
