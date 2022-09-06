@@ -490,7 +490,7 @@ class DataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
-        return self._create_dataloader(self.train_subset, shuffle=False, return_full_seq=False)
+        return self._create_dataloader(self.train_subset, shuffle=True, return_full_seq=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
