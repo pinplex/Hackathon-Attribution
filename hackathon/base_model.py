@@ -6,20 +6,25 @@ from torch import Tensor
 
 
 class BaseModel(pl.LightningModule):
+    """Implements a base model.
+    
+    Meant to be subclassed.
+
+    Note that the prediction step (i.e., `my_trainer.predict(...)`) automatically
+    assigns the predictions to the datamodule's dataset with name '<target>_hat'.
+    """
     def __init__(
             self,
-            custom_model: torch.nn.Module,
             learning_rate: float,
             weight_decay: float):
         super().__init__()
 
-        self.model = custom_model
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
 
         self.loss_fn = torch.nn.MSELoss()
 
-        self.save_hyperparameters(ignore=['custom_model'])
+        self.save_hyperparameters()
 
     def common_step(self, batch: dict[str, Union[Tensor, dict[str, Any]]],
                     step_name: Optional[str] = None) -> tuple[Tensor, Tensor]:
@@ -27,7 +32,7 @@ class BaseModel(pl.LightningModule):
         y = batch['y']
         data_sel = batch['data_sel']
 
-        y_hat = self.model(x)
+        y_hat = self(x)
 
         pred_len = data_sel['pred_len'].min()
         loss = self.loss_fn(y_hat[:, -pred_len:, :], y[:, -pred_len:, :])
