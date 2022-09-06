@@ -409,8 +409,8 @@ class DataModule(pl.LightningDataModule):
     def __init__(self, data_path: str,
                  features: list[str],
                  targets: list[str],
-                 training_subset: dict[str, Any],
-                 validation_subset: dict[str, Any],
+                 train_subset: dict[str, Any],
+                 valid_subset: dict[str, Any],
                  test_subset: Optional[dict[str, Any]] = None,
                  window_size: int = 10,
                  context_size: int = 1,
@@ -439,10 +439,10 @@ class DataModule(pl.LightningDataModule):
             A list of features.
         targets: list[str]
             A list of targets.
-        training_subset: dict[str, Any]
+        train_subset: dict[str, Any]
             The data subset that defines the training set. Keys correspond to xarray.Dataset
             dimensions, values to the selection. E.g.: `{'time':slice('2002', '2004'), 'location':[0, 1, 2]}`.
-        validation_subset: dict[str, Any]
+        valid_subset: dict[str, Any]
             Same as 'training_subset' for validations set.
         test_subset: dict[str, Any]
             Same as 'training_subset' for test set.
@@ -466,8 +466,8 @@ class DataModule(pl.LightningDataModule):
 
         self.load_data = load_data
 
-        self.training_subset = training_subset
-        self.validation_subset = validation_subset
+        self.train_subset = train_subset
+        self.valid_subset = valid_subset
         self.test_subset = test_subset
 
         self.window_size = window_size
@@ -481,10 +481,7 @@ class DataModule(pl.LightningDataModule):
 
         self.ds['code'] = xr.full_like(self.ds[self.targets[0]], -1)
 
-        self.norm_stats = None
-
-    def setup(self, stage: Optional[str] = None):
-        training_set = self.ds.sel(**self.training_subset)
+        training_set = self.ds.sel(**self.train_subset)
         self.norm_stats = TSData.get_norm_stats(
             ds=training_set,
             features=self.features,
@@ -493,23 +490,16 @@ class DataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
-        return self._create_dataloader(self.training_subset, shuffle=False, return_full_seq=False)
+        return self._create_dataloader(self.train_subset, shuffle=False, return_full_seq=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
-        return self._create_dataloader(self.validation_subset, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(self.valid_subset, shuffle=False, return_full_seq=True)
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
 
-        class CheatingError(Exception):
-            pass
-
-        raise CheatingError(
-            'You are not allowed to use the test set! Anzeige ist raus!'
-        )
-
-        return self._create_dataloader(self.test_dataloader, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(self.test_subset, shuffle=False, return_full_seq=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
