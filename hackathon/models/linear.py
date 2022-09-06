@@ -1,13 +1,6 @@
-import os
-import shutil
-from glob import glob
-from abc import abstractmethod
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from torch import Tensor
 
 from hackathon import BaseModel, BaseRunner, DataModule
