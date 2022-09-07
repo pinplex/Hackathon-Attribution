@@ -182,11 +182,11 @@ class AttnRunner(BaseRunner):
         train_locs, valid_locs = self.get_loc_split(fold)
         train_sel = {
             'location': train_locs,
-            'time': slice('1850', '2009')
+            'time': slice('1850', '2004')
         }
         valid_sel = {
             'location': valid_locs,
-            'time': slice('2010', '2014')
+            'time': slice('2005', '2014')
         }
 
         datamodule = DataModule(
