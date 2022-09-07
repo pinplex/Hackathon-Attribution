@@ -120,7 +120,10 @@ class LinearRunner(BaseRunner):
         # Fit model with training data (and valid data for early stopping.)
         trainer.fit(model, datamodule=datamodule)
 
-        # Final predictions on the test set.
+        # Load best model.
+        self.load_best_model(trainer=trainer, model=model)
+
+        # Final predictions on the prediction set.
         self.predict(trainer=trainer, datamodule=datamodule, version=version)
 
         return trainer, datamodule, model

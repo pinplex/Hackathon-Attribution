@@ -263,13 +263,12 @@ class AttnRunner(BaseRunner):
             trainer.fit(model, datamodule=datamodule)
 
             # Load best model.
-            best_model = trainer.checkpoint_callback.best_model_path
-            model.load_from_checkpoint(best_model)
+            self.load_best_model(trainer=trainer, model=model)
 
             # Final predictions on the test set.
             self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
 
-            models.append()
+            models.append(model)
 
         ensemble = Ensemble(models)
 
