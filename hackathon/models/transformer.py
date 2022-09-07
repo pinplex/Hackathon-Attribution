@@ -275,7 +275,7 @@ class AttnRunner(BaseRunner):
         return trainer, datamodule, ensemble
 
     @staticmethod
-    def get_loc_split(fold: int) -> tuple[list[int], list[int]]:
+    def get_cv_loc_split(fold: int) -> tuple[list[int], list[int]]:
         """Split clusters of sites into training and validation set.
 
         Parameters
