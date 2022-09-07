@@ -5,6 +5,7 @@ import shutil
 from hackathon.models.simplemlp import SimpleMLPRunner
 from hackathon.models.second import RandomBaselineRunner
 from hackathon.models.linear import LinearRunner
+from hackathon.models.transformer  import AttnRunner
 
 models = [LinearRunner, RandomBaselineRunner]
 
@@ -17,5 +18,7 @@ for Runner in models:
     # Training.
     runner = Runner(log_dir=log_dir, seed=910)
     trainer, datamodule, model = runner.train()
-    runner.predict(trainer=trainer, datamodule=datamodule, version='final')
+
+    # Evaluating.
+    runner.predict(trainer=trainer, model=model, datamodule=datamodule, version='final')
     runner.save_model(model=model, version='final')

@@ -18,21 +18,22 @@ from hackathon.base_model import BaseModel
 
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
-    def __init__(self, model_list: list[pl.LightningModule], aggregate_fun: str = 'mean') -> None:
+    def __init__(self, model_list: list[BaseModel], aggregate_fun: str = 'mean') -> None:
         """Initializes Ensemble.
 
         Parameters
         ----------
-        model_list: A list of models, each a pl.LightningModule.
+        model_list: A list of models, each a BaseModel.
         aggregate_fun: the aggregation function to reduces ensemble runs, one of
             \'mean\' (default) or \'median\'.
         """
         super().__init__()
         self.models = torch.nn.ModuleList(model_list)
+
         if aggregate_fun == 'mean':
-            self.aggr_fn = lambda x: torch.mean(x, dim=0)
+            self.aggr_fn = self.mean_agg
         elif aggregate_fun == 'median':
-            self.aggr_fn = lambda x: torch.quantile(x, q=0.5, dim=0)
+            self.aggr_fn = self.median_agg
         else:
             raise ValueError(
                 f'`aggregate_fun` must be \'mean\' or \'median\', is \'{aggregate_fun}\'.'
@@ -42,13 +43,21 @@ class Ensemble(pl.LightningModule):
         """Forward call, all ensemble members and reduces the output."""
         y_hats = []
         for module in self.models:
-            y_hats.append(module(x))
+            y_hat, _ = module.common_step(x)
+            y_hats.append(y_hat)
 
         y_hats = torch.stack(y_hats, dim=0)
         y_hat = self.aggr_fn(y_hats)
 
         return y_hat
 
+    @staticmethod
+    def mean_agg(x: Tensor) -> Tensor:
+        return torch.mean(x, dim=0)
+
+    @staticmethod
+    def median_agg(x: Tensor) -> Tensor:
+        return torch.median(x, dim=0)
 
 class BaseRunner(object):
     """BaseRunner implements the training scheme.
@@ -120,6 +129,7 @@ class BaseRunner(object):
             self,
             version: str,
             patience: int = 20,
+            max_epochs: int = -1,
             **kwargs) -> pl.Trainer:
         """Trainer setup.
 
@@ -131,13 +141,14 @@ class BaseRunner(object):
             Logs will be saved to `log_dir/version`.
         patience: The patiance, training will be stopped after n iterations
             with no improvement.
+        max_epochs: Maximum number of epochs to run, default is -1 (infinite).
 
         Returns
         -------
         A pl.Trainer.
         """
         logger = TensorBoardLogger(save_dir=self.log_dir, name='', version=version)
-        early_stopper = EarlyStopping(patience=patience, monitor='val_loss', mode='min')
+        early_stopper = EarlyStopping(patience=patience, monitor='val_loss', mode='min', verbose=True)
         checkpointer = ModelCheckpoint(save_top_k=1, monitor='val_loss')
 
         trainer = pl.Trainer(
@@ -148,7 +159,9 @@ class BaseRunner(object):
                 checkpointer
             ],
             log_every_n_steps=1,
-            max_epochs=-1,
+            max_epochs=max_epochs,
+            accelerator='gpu',
+            devices='3,',
             **kwargs
         )
 
@@ -179,13 +192,19 @@ class BaseRunner(object):
     def predict(
             self,
             trainer: pl.Trainer,
+            model: BaseModel,
             datamodule: DataModule,
             version: str) -> xr.Dataset:
         """Make predictions with the `datamodule.predict_dataloader`.
-        
+
+        !!!DOES NOT LOAD BEST MODEL!!!
+        ------------------------------
+        Use `.load_best_model(...)` to restore best parameters and pass the model to `.predict(...)`.
+
         Parameters
         ----------
         trainer: a trainer on which '.fit(...)' has been run before.
+        model: a trained model.
         datamodule: the datamodule.
         version: The run version (e.g., 'fold_00' if you run a cross-validation, or 'final').
             Predictions will be saved to `log_dir/version/predictions.nc`. Make sure to match with
@@ -193,7 +212,7 @@ class BaseRunner(object):
         """
 
         dataloader = datamodule.predict_dataloader()
-        trainer.predict(ckpt_path='best', dataloaders=dataloader)
+        trainer.predict(model=model, dataloaders=dataloader)
         save_path = os.path.join(self.log_dir, version, 'predictions.nc')
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         dataloader.dataset.ds.to_netcdf(save_path)
@@ -212,3 +231,17 @@ class BaseRunner(object):
         save_path = os.path.join(self.log_dir, version, 'final.ckpt')
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         torch.save(model, save_path)
+
+    @staticmethod
+    def load_best_model(trainer: pl.Trainer, model: BaseModel) -> None:
+        """Load best model (inplace).
+        
+        Parameters
+        ----------
+        trainer: a trainer on which '.fit(...)' has been run before.
+        model: a model.
+
+        """
+
+        best_model = trainer.checkpoint_callback.best_model_path
+        model.load_from_checkpoint(best_model)

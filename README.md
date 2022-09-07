@@ -27,7 +27,7 @@ This repository contains code and data for the attribution hackathon.
 | `hackathon/base_model.py` | The base model class. |
 | `hackathon/base_runner.py` | The base runner class. |
 | `hackathon/data_pipeline.py` | The dataloader. |
-| `hackathon/benchmark.py` | Evaluate model. |
+| `benchmark.py` | Evaluate model. |
 
 ## Getting started
 
@@ -46,7 +46,6 @@ __Don't just take the parameters from the dumy model, they are intentionally set
 ## Logging
 
 * The `log_dir` argument sets the base directory of the experiment.
-* The `version` argument in `MyRunner.trainer_setup(version=...)` sets the logging
-  to `log_dir/version`, where checkpoints and logs are saved to. A version could be a cross validation fold, for example. Use tensorboard to check the logs. You most likely call `MyRunner.trainer_setup` from within `MyRunner.train`.
+* The `version` argument in `MyRunner.trainer_setup(version=...)` sets the logging to `log_dir/version`, where checkpoints and logs are saved to. A version could be a cross validation fold, for example. Use tensorboard to check the logs. You most likely call `MyRunner.trainer_setup` from within `MyRunner.train`.
 * If you need predictions for every version run (e.g., cross validation fold), call `self.predict(trainer=trainer, datamodule=datamodule, version=version)` as in the `linear.py` example. The final predictions on the test set are saved to `log_dir/version/predictions.nc`
 * The `benchmark.py` script evaluates the model and saves whatever model is return from `MyRunner.run(...)` along with final predictions, both with version `final`.
