@@ -179,7 +179,7 @@ class AttnRunner(BaseRunner):
         A datamodule of type pl.LightningDataModule.
         """
 
-        train_locs, valid_locs = self.get_loc_split(fold)
+        train_locs, valid_locs = self.get_cv_loc_split(fold)
         train_sel = {
             'location': train_locs,
             'time': slice('1850', '2004')

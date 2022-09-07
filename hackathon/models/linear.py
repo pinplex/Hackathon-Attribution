@@ -34,15 +34,15 @@ class LinearRunner(BaseRunner):
         A datamodule of type pl.LightningDataModule.
         """
 
-        # `fold` only selects locations, you may also create splits in time.
-        if fold == 0:
-            train_subset_locations = [1, 2]
-            valid_subset_locations = [3]
-            test_subset_locations = [4]
-        else:
-            raise ValueError(
-                f'`fold` must be 0 but is {fold}.'
-            )
+        train_locs, valid_locs = self.get_cv_loc_split(fold)
+        train_sel = {
+            'location': train_locs,
+            'time': slice('1850', '2004')
+        }
+        valid_sel = {
+            'location': valid_locs,
+            'time': slice('2005', '2014')
+        }
 
         datamodule = DataModule(
             # You may keep these:
@@ -50,18 +50,9 @@ class LinearRunner(BaseRunner):
             features=[f'var{i}' for i in range(1, 8)] + ['co2'],
             targets=['GPP'],
             # You may change these:
-            train_subset={
-                'location': train_subset_locations,
-                'time': slice('1850', '1855')
-            },
-            valid_subset={
-                'location': valid_subset_locations,
-                'time': slice('1855', '1860')
-            },
-            test_subset={
-                'location': test_subset_locations,
-                'time': slice('1855', '1860')
-            },
+            train_subset=train_sel,
+            valid_subset=valid_sel,
+            test_subset=valid_sel,
             window_size=1,
             context_size=1,
             **kwargs)
@@ -127,7 +118,7 @@ class LinearRunner(BaseRunner):
             self.load_best_model(trainer=trainer, model=model)
 
             # Final predictions on the prediction set.
-            self.predict(trainer=trainer, datamodule=datamodule, version=version)
+            self.predict(trainer=trainer, model=model, datamodule=datamodule, version=version)
 
         ensemble = Ensemble(models)
 
