@@ -245,3 +245,27 @@ class BaseRunner(object):
 
         best_model = trainer.checkpoint_callback.best_model_path
         model.load_from_checkpoint(best_model)
+
+    @staticmethod
+    def get_cv_loc_split(fold: int) -> tuple[list[int], list[int]]:
+        """Split clusters of sites into training and validation set.
+
+        Parameters
+        ----------
+        fold: the fold ID, a value between (including) 0 and 9.
+
+        Returns
+        -------
+        A tuple, the training and the validation locations.
+        """
+
+        locs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        if (fold < 10) and (fold >= 0):
+            valid_loc = locs.pop(fold)
+            train_loc = locs
+        else:
+            raise ValueError(
+                f'argument `fold` must be a value between (including) 0 and 9, is {fold}.'
+            )
+
+        return train_loc, valid_loc
