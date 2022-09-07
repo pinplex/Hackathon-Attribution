@@ -16,6 +16,7 @@ for Runner in models:
     # Training.
     runner = Runner(log_dir=log_dir, seed=910)
     trainer, datamodule, model = runner.train()
+
+    # Evaluating.
     runner.predict(trainer=trainer, model=model, datamodule=datamodule, version='final')
-    #from IPython import embed; embed()
     runner.save_model(model=model, version='final')
