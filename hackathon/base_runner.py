@@ -160,8 +160,6 @@ class BaseRunner(object):
             ],
             log_every_n_steps=1,
             max_epochs=max_epochs,
-            accelerator='gpu',
-            devices='3,',
             **kwargs
         )
 
