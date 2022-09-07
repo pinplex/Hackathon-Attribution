@@ -5,7 +5,7 @@ import shutil
 from hackathon.models.linear import LinearRunner
 from hackathon.models.transformer  import AttnRunner
 
-models = [AttnRunner]
+models = [LinearRunner]
 
 for Runner in models:
     model_name = Runner.__module__.split('.')[-1]
