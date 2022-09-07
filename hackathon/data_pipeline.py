@@ -264,7 +264,7 @@ class TSData(Dataset):
                 p = pred[b, -data_sel['pred_len'][b]:, target_i]
                 # if self.do_normalize:
                 #    p = self.denorm_np(p, target)
-                self.ds[target + '_hat'].loc[sel_assign] = p
+                self.ds[target + '_hat'].loc[sel_assign] = p.cpu()
 
     @classmethod
     def get_norm_stats(
