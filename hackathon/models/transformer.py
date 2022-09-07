@@ -160,7 +160,7 @@ class MultiheadAttn(BaseModel):
 
     def generate_square_subsequent_mask(self, sz: int) -> Tensor:
         """Generates an upper-triangular matrix of -inf, with zeros on diag."""
-        return torch.triu(torch.ones(sz, sz) * float('-inf'), diagonal=1)
+        return torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
 
 
 class AttnRunner(BaseRunner):
@@ -243,13 +243,13 @@ class AttnRunner(BaseRunner):
         """
 
         models = []
-        for fold in range(0):
+        for fold in range(1):
             version = f'fold_{fold:02d}'
 
             datamodule = self.data_setup(
                 fold=fold,
                 batch_size=10,
-                num_workers=0
+                num_workers=10
             )
 
             model = self.model_setup(
@@ -257,13 +257,17 @@ class AttnRunner(BaseRunner):
                 num_targets=datamodule.num_targets
             )
 
-            trainer = self.trainer_setup(version=version)
+            trainer = self.trainer_setup(version=version, max_epochs=1)
 
             # Fit model with training data (and valid data for early stopping.)
             trainer.fit(model, datamodule=datamodule)
 
+            # Load best model.
+            best_model = trainer.checkpoint_callback.best_model_path
+            model.load_from_checkpoint(best_model)
+
             # Final predictions on the test set.
-            self.predict(trainer=trainer, datamodule=datamodule, version=version)
+            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
 
             models.append()
 
