@@ -120,6 +120,7 @@ class BaseRunner(object):
             self,
             version: str,
             patience: int = 20,
+            max_epochs: int = -1,
             **kwargs) -> pl.Trainer:
         """Trainer setup.
 
@@ -131,6 +132,7 @@ class BaseRunner(object):
             Logs will be saved to `log_dir/version`.
         patience: The patiance, training will be stopped after n iterations
             with no improvement.
+        max_epochs: Maximum number of epochs to run, default is -1 (infinite).
 
         Returns
         -------
@@ -148,7 +150,9 @@ class BaseRunner(object):
                 checkpointer
             ],
             log_every_n_steps=1,
-            max_epochs=-1,
+            max_epochs=max_epochs,
+            accelerator='gpu',
+            devices='3,',
             **kwargs
         )
 
