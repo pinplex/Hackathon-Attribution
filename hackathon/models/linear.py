@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import torch
 from torch import Tensor
 
-from hackathon import BaseModel, BaseRunner, DataModule
+from hackathon import BaseModel, BaseRunner, DataModule, Ensemble
 
 
 class Linear(BaseModel):
@@ -101,29 +101,34 @@ class LinearRunner(BaseRunner):
         A trained model.
         """
 
+        models = []
+
         fold = 0
-        version = f'fold_{fold:02d}'
+        for fold in range(10):
+            version = f'fold_{fold:02d}'
 
-        datamodule = self.data_setup(
-            fold=fold,
-            batch_size=4,
-            num_workers=0
-        )
+            datamodule = self.data_setup(
+                fold=fold,
+                batch_size=4,
+                num_workers=0
+            )
 
-        model = self.model_setup(
-            num_features=datamodule.num_features,
-            num_targets=datamodule.num_targets
-        )
+            model = self.model_setup(
+                num_features=datamodule.num_features,
+                num_targets=datamodule.num_targets
+            )
 
-        trainer = self.trainer_setup(version=version)
+            trainer = self.trainer_setup(version=version)
 
-        # Fit model with training data (and valid data for early stopping.)
-        trainer.fit(model, datamodule=datamodule)
+            # Fit model with training data (and valid data for early stopping.)
+            trainer.fit(model, datamodule=datamodule)
 
-        # Load best model.
-        self.load_best_model(trainer=trainer, model=model)
+            # Load best model.
+            self.load_best_model(trainer=trainer, model=model)
 
-        # Final predictions on the prediction set.
-        self.predict(trainer=trainer, datamodule=datamodule, version=version)
+            # Final predictions on the prediction set.
+            self.predict(trainer=trainer, datamodule=datamodule, version=version)
 
-        return trainer, datamodule, model
+        ensemble = Ensemble(models)
+
+        return trainer, datamodule, ensemble

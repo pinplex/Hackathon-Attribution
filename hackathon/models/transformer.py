@@ -182,11 +182,11 @@ class AttnRunner(BaseRunner):
         train_locs, valid_locs = self.get_loc_split(fold)
         train_sel = {
             'location': train_locs,
-            'time': slice('1850', '2009')
+            'time': slice('1850', '2004')
         }
         valid_sel = {
             'location': valid_locs,
-            'time': slice('2010', '2014')
+            'time': slice('2005', '2014')
         }
 
         datamodule = DataModule(
@@ -243,7 +243,7 @@ class AttnRunner(BaseRunner):
         """
 
         models = []
-        for fold in range(1):
+        for fold in range(10):
             version = f'fold_{fold:02d}'
 
             datamodule = self.data_setup(
@@ -257,7 +257,12 @@ class AttnRunner(BaseRunner):
                 num_targets=datamodule.num_targets
             )
 
-            trainer = self.trainer_setup(version=version, max_epochs=1)
+            trainer = self.trainer_setup(
+                version=version,
+                max_epochs=-1,
+                accelerator='gpu',
+                devices='3,'
+            )
 
             # Fit model with training data (and valid data for early stopping.)
             trainer.fit(model, datamodule=datamodule)
@@ -275,29 +280,25 @@ class AttnRunner(BaseRunner):
         return trainer, datamodule, ensemble
 
     @staticmethod
-    def get_loc_split(fold: int) -> tuple[list[int], list[int]]:
+    def get_cv_loc_split(fold: int) -> tuple[list[int], list[int]]:
         """Split clusters of sites into training and validation set.
 
-        Uses all combinations of 4 from one cluster plus 1 from the other cluster, yielding 50 folds.
+        Parameters
+        ----------
+        fold: the fold ID, a value between (including) 0 and 9.
+
+        Returns
+        -------
+        A tuple, the training and the validation locations.
         """
 
-        if (fold < 25) and (fold >= 0):
-            group_1 = [1, 2, 3, 4, 5]
-            group_2 = [6, 7, 8, 9, 10]
-            gfold = fold
-        elif fold < 50:
-            group_2 = [1, 2, 3, 4, 5]
-            group_1 = [6, 7, 8, 9, 10]
-            gfold = fold - 25
+        locs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        if (fold < 10) and (fold >= 0):
+            valid_loc = locs.pop(fold)
+            train_loc = locs
         else:
             raise ValueError(
-                f'argument `fold` cannot be >= 50, is {fold}.'
+                f'argument `fold` must be a value between (including) 0 and 9, is {fold}.'
             )
 
-        g1_v = group_1.pop(gfold // 5)
-        g2_t = group_2.pop(gfold % 5)
-
-        group_1.append(g2_t)
-        group_2.append(g1_v)
-
-        return group_1, group_2
+        return train_loc, valid_loc
