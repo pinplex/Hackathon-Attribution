@@ -27,7 +27,7 @@ This repository contains code and data for the attribution hackathon.
 | `hackathon/base_model.py` | The base model class. |
 | `hackathon/base_runner.py` | The base runner class. |
 | `hackathon/data_pipeline.py` | The dataloader. |
-| `hackathon/benchmark.py` | Evaluate model. |
+| `benchmark.py` | Evaluate model. |
 
 ## Getting started
 
