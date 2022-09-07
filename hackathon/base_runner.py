@@ -259,7 +259,7 @@ class BaseRunner(object):
 
         locs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         if (fold < 10) and (fold >= 0):
-            valid_loc = locs.pop(fold)
+            valid_loc = [locs.pop(fold)]
             train_loc = locs
         else:
             raise ValueError(
