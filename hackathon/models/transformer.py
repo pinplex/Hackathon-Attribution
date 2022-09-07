@@ -1,94 +1,304 @@
-import os
-import shutil
-from glob import glob
-
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from torch import Tensor
+from torch import nn, Tensor
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
+import math
 
-from hackathon import BaseModel
-from hackathon import DataModule
-
-ROOT_DIR = f'./logs/{os.path.basename(__file__).split(".py")[0]}'
+from hackathon import BaseModel, BaseRunner, DataModule, Ensemble
 
 
-class Linear(torch.nn.Module):
-    def __init__(self, num_features: int, num_targets: int):
-        super(Linear, self).__init__()
-
-        self.linear = torch.nn.Linear(num_features, num_targets)
+class PermuteBatchSeq(nn.Module):
+    def __init__(self) -> None:
+        """Switch first two dimensions ('batch_first' <-> 'sequence first')
+        """
+        super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.linear(x)
+        return x.permute(1, 0, 2)
+
+
+class PositionalEncoding(nn.Module):
+
+    def __init__(
+            self,
+            d_model: int,
+            dropout: float = 0.1,
+            max_len: int = 15000,
+            n: int = 365 * 50):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(n) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe.permute(1, 0, 2))
+        self.pe: Tensor
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, d_input].
+
+        Returns:
+            Tensor, shape [batch_dim, seq_len, embedding_dim].
+        """
+
+        out = x + self.pe[:, :x.size(1), :]
+        return self.dropout(out)
+
+
+class MultiheadAttn(BaseModel):
+    def __init__(
+            self,
+            num_inputs: int,
+            num_outputs: int,
+            d_model: int,
+            num_head: int,
+            num_hidden: int,
+            num_layers: int,
+            dropout: float = 0.1,
+            **kwargs):
+        """Implements a multihead self-attention model.
+
+        Shapes:
+            src: [batch_size, seq_len, num_inputs]
+            src_mask: [seq_len, seq_len]
+
+        Returns:
+            output Tensor of shape [batch_size, seq_len, d_model]
+
+        Args:
+            num_inputs (int):
+                The number of inputs.
+            num_outputs (int):
+                The output dimensionality.
+            d_model (int):
+                The number of expected features in the input. Bust be an even number.
+            num_head (int):
+                the number of attention heads per layer.
+            num_hidden (int):
+                The number of hidden units.
+            num_layers (int):
+                The number of hidden fully-connected layers.
+            dropout (float):
+                The dropout applied after each layer, in range [0, 1).
+            **kwargs:
+                Keyword arguments passed to BaseModel (parent class).
+        """
+
+        super().__init__(**kwargs)
+
+        self.model_type = 'Transformer'
+
+        self.input_encoder = nn.Linear(in_features=num_inputs, out_features=d_model)
+
+        self.pos_encoder = PositionalEncoding(d_model=d_model, dropout=dropout)
+
+        self.to_sequence_first = PermuteBatchSeq()
+
+        encoder_layers = TransformerEncoderLayer(
+            d_model=d_model, nhead=num_head, dim_feedforward=num_hidden, dropout=dropout)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers)
+
+        self.to_batch_first = PermuteBatchSeq()
+
+        self.linear_y = nn.Linear(
+            in_features=d_model,
+            out_features=num_outputs
+        )
+
+        # self.attn_scores = {}
+        # for i, layer in enumerate(self.transformer_encoder.layers):
+        #     layer.self_attn.register_forward_hook(self.get_activation(f'attn_layer_{i:02d}'))
+
+        self.save_hyperparameters()
+
+    def get_activation(self, name: str):
+        # The hook signature.
+        def hook(model, input, output):
+            self.attn_scores[name] = output[1].detach()
+
+        return hook
+
+    def forward(self, src: Tensor) -> Tensor:
+        """
+        Args:
+            src: Tensor, shape [seq_len, batch_size]
+            src_mask: Tensor, shape [seq_len / 24, seq_len / 24]
+
+        Returns:
+            output Tensor of shape [seq_len, batch_size, ntoken]
+        """
+
+        # [B, S, I] -> [B, S, D]
+        src = self.input_encoder(src)
+
+        # [B, S, D] -> [B, S, D]
+        src_enc = self.pos_encoder(src)
+
+        # [B, S, D] -> [S, B, D]
+        src_enc = self.to_sequence_first(src_enc)
+
+        # [S, S]
+        src_mask = self.generate_square_subsequent_mask(sz=src_enc.shape[0])
+
+        # [S, B, D] -> [S, B, D]
+        out = self.transformer_encoder(src_enc, src_mask)
+
+        # [S, B, D] -> [B, S, D]
+        out = self.to_batch_first(out)
+
+        # [B, S, D] -> [B, S, D]
+        out = out + src
+
+        # [B, S, D] -> [B, S, O]
+        out = self.linear_y(out)        
+
         return out
 
+    def generate_square_subsequent_mask(self, sz: int) -> Tensor:
+        """Generates an upper-triangular matrix of -inf, with zeros on diag."""
+        return torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
 
-def run(
-        rerun=True,
-        root_dir: str = ROOT_DIR,
-        version=None,
-        seed=None) -> tuple[pl.LightningModule, torch.utils.data.DataLoader]:
-    pl.seed_everything(seed)
 
-    dataloader_kwargs = dict(batch_size=4, num_workers=4)
+class AttnRunner(BaseRunner):
+    """Implements a linear model with training routine."""
+    def data_setup(self, fold: int, **kwargs) -> pl.LightningDataModule:
+        """Setup datamodule of class pl.LightningDataModule with a given cross validation fold.
 
-    datamodule = DataModule(data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
-                            training_subset={'location': [1, 2], 'time': slice('1850', '1855')},
-                            validation_subset={'location': [3, 4], 'time': slice('1855', '1860')},
-                            features=[f'var{i}' for i in range(1, 8)] + ['co2'],
-                            targets=['GPP'],
-                            window_size=2,
-                            context_size=1,
-                            **dataloader_kwargs)
+        Parameters
+        ----------
+        fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
+            Override and implement your own data splitting routine.
+        kwargs: Are passed to the DataModule.
 
-    custom_model = Linear(
-        num_features=datamodule.num_features,
-        num_targets=datamodule.num_targets
-    )
+        Returns
+        -------
+        A datamodule of type pl.LightningDataModule.
+        """
 
-    model = BaseModel(
-        custom_model=custom_model,
-        learning_rate=0.001,
-        weight_decay=0.0
-    )
+        train_locs, valid_locs = self.get_loc_split(fold)
+        train_sel = {
+            'location': train_locs,
+            'time': slice('1850', '2009')
+        }
+        valid_sel = {
+            'location': valid_locs,
+            'time': slice('2010', '2014')
+        }
 
-    # DON'T CHANGE ------
-    logger = TensorBoardLogger(save_dir=root_dir, name='', version=version)
-    early_stopper = EarlyStopping(patience=10, monitor='val_loss', mode='min')
-    checkpointer = ModelCheckpoint(save_top_k=1, monitor='val_loss')
-    if os.path.isdir(logger.root_dir) and rerun:
-        shutil.rmtree(logger.root_dir)
-    # -----------------
+        datamodule = DataModule(
+            # You may keep these:
+            data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+            features=[f'var{i}' for i in range(1, 8)] + ['co2'],
+            targets=['GPP'],
+            # You may change these:
+            train_subset=train_sel,
+            valid_subset=valid_sel,
+            test_subset=valid_sel,
+            window_size=3,
+            context_size=1,
+            **kwargs)
 
-    trainer = pl.Trainer(
-        logger=logger,
-        default_root_dir=root_dir,
-        callbacks=[
-            early_stopper,
-            checkpointer
-        ],
-        max_epochs=-1
-    )
+        return datamodule
 
-    if rerun:
-        trainer.fit(model, datamodule=datamodule)
+    def model_setup(self, num_features: int, num_targets: int):
+        """Create a model as subclass of hackathon.base_model.BaseModel.
 
-        # eval_loader = datamodule.test_dataloader()
-        eval_loader = datamodule.val_dataloader()  # Use validation dataloader for testing.
-        trainer.predict(ckpt_path='best', dataloaders=eval_loader)
-    else:
-        checkpoint = glob(os.path.join(logger.root_dir, 'checkpoints/*'))
-        if len(checkpoint) != 1:
-            raise AssertionError(
-                f'the number of checkpoints is {len(checkpoint)}, must be 1.'
+        Parameters
+        ----------
+        num_features: The number of features.
+        num_targets: The number of targets.
+
+        Returns
+        -------
+        A model.
+        """
+        model = MultiheadAttn(
+            num_inputs=num_features,
+            num_outputs=num_targets,
+            d_model=4,
+            num_head=4,
+            num_hidden=8,
+            num_layers=2,
+            dropout=0.1,
+            learning_rate=0.001,
+            weight_decay=0.001,
+        )
+
+        return model
+
+    def train(self) -> tuple[pl.Trainer, pl.LightningDataModule, pl.LightningModule]:
+        """Runs training.
+
+        Note:
+        This is just a blueprint, you may implement your own training routine here, e.g.,
+        cross validation. At the end, one single model must be returned.
+
+        Returns
+        -------
+        A trained model.
+        """
+
+        models = []
+        for fold in range(1):
+            version = f'fold_{fold:02d}'
+
+            datamodule = self.data_setup(
+                fold=fold,
+                batch_size=10,
+                num_workers=10
             )
-        checkpoint = checkpoint[0]
-        model.load_from_checkpoint(checkpoint)
 
-        datamodule.setup()
-        eval_loader = datamodule.val_dataloader()
+            model = self.model_setup(
+                num_features=datamodule.num_features,
+                num_targets=datamodule.num_targets
+            )
 
-    return model, eval_loader
+            trainer = self.trainer_setup(version=version, max_epochs=1)
+
+            # Fit model with training data (and valid data for early stopping.)
+            trainer.fit(model, datamodule=datamodule)
+
+            # Load best model.
+            best_model = trainer.checkpoint_callback.best_model_path
+            model.load_from_checkpoint(best_model)
+
+            # Final predictions on the test set.
+            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
+
+            models.append()
+
+        ensemble = Ensemble(models)
+
+        return trainer, datamodule, ensemble
+
+    @staticmethod
+    def get_loc_split(fold: int) -> tuple[list[int], list[int]]:
+        """Split clusters of sites into training and validation set.
+
+        Uses all combinations of 4 from one cluster plus 1 from the other cluster, yielding 50 folds.
+        """
+
+        if (fold < 25) and (fold >= 0):
+            group_1 = [1, 2, 3, 4, 5]
+            group_2 = [6, 7, 8, 9, 10]
+            gfold = fold
+        elif fold < 50:
+            group_2 = [1, 2, 3, 4, 5]
+            group_1 = [6, 7, 8, 9, 10]
+            gfold = fold - 25
+        else:
+            raise ValueError(
+                f'argument `fold` cannot be >= 50, is {fold}.'
+            )
+
+        g1_v = group_1.pop(gfold // 5)
+        g2_t = group_2.pop(gfold % 5)
+
+        group_1.append(g2_t)
+        group_2.append(g1_v)
+
+        return group_1, group_2

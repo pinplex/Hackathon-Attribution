@@ -3,8 +3,9 @@ import os
 import shutil
 
 from hackathon.models.linear import LinearRunner
+from hackathon.models.transformer  import AttnRunner
 
-models = [LinearRunner]
+models = [AttnRunner]
 
 for Runner in models:
     model_name = Runner.__module__.split('.')[-1]
@@ -15,5 +16,7 @@ for Runner in models:
     # Training.
     runner = Runner(log_dir=log_dir, seed=910)
     trainer, datamodule, model = runner.train()
-    runner.predict(trainer=trainer, datamodule=datamodule, version='final')
+
+    # Evaluating.
+    runner.predict(trainer=trainer, model=model, datamodule=datamodule, version='final')
     runner.save_model(model=model, version='final')
