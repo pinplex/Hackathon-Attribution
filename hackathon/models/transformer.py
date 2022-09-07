@@ -257,7 +257,12 @@ class AttnRunner(BaseRunner):
                 num_targets=datamodule.num_targets
             )
 
-            trainer = self.trainer_setup(version=version, max_epochs=-1)
+            trainer = self.trainer_setup(
+                version=version,
+                max_epochs=-1,
+                accelerator='gpu',
+                devices='3,'
+            )
 
             # Fit model with training data (and valid data for early stopping.)
             trainer.fit(model, datamodule=datamodule)
