@@ -246,7 +246,7 @@ class TSData(Dataset):
                 'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
             )
 
-        pred = pred.detach()
+        pred = pred.detach().cpu()
 
         if pred.shape[-1] != self.num_targets:
             raise AssertionError(
@@ -256,7 +256,7 @@ class TSData(Dataset):
         for b in range(pred.shape[0]):
 
             sel_assign = {
-                'location': data_sel['loc'][b],
+                'location': data_sel['loc'][b].cpu(),
                 'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
             }
 
@@ -264,7 +264,7 @@ class TSData(Dataset):
                 p = pred[b, -data_sel['pred_len'][b]:, target_i]
                 # if self.do_normalize:
                 #    p = self.denorm_np(p, target)
-                self.ds[target + '_hat'].loc[sel_assign] = p.cpu()
+                self.ds[target + '_hat'].loc[sel_assign] = p
 
     @classmethod
     def get_norm_stats(
