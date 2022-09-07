@@ -5,7 +5,7 @@ from torch import Tensor
 from hackathon import BaseModel, BaseRunner, DataModule
 
 
-class SimpleMLP(BaseModel):
+class RandomBaseline(BaseModel):
     """
     A very simple (one hidden layer) MLP to predict ahead
 
@@ -28,43 +28,47 @@ class SimpleMLP(BaseModel):
         hidden_size: int,
         **kwargs,
     ):
-        super(SimpleMLP, self).__init__(**kwargs)
+        super(RandomBaseline, self).__init__(**kwargs)
 
         self.layer1 = torch.nn.Conv1d(
             in_channels = num_features,
             out_channels = hidden_size,
-            kernel_size = receptive_field
+            kernel_size = receptive_field,
+            padding = 'same'
         )
         self.relu = torch.nn.ReLU()
         
         self.layer2 = torch.nn.Conv1d(
             in_channels = hidden_size,
-            out_channels = num_targets,
-            kernel_size = 1
+            out_channels = num_features,
+            kernel_size = 1,
+            padding = 'same'
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, input_tensor: Tensor) -> Tensor:
         """
         The forward function of the simple MLP
 
-        :param x: the input tensor
-        :type x: Tensor
+        :param input_tensor: the input tensor
+        :type input_tensor: Tensor
         """
 
-        x = torch.transpose(x, -1, -2)
+        x = torch.transpose(input_tensor, -1, -2)
         x = self.layer1(x)
         x = self.relu(x)
         x = self.layer2(x)
-        x = torch.transpose(x, -1, -2)
+        x = torch.transpose(x, -1, -2).unsqueeze(-2)
+        input_tensor = input_tensor.unsqueeze(-1)
+        z = torch.matmul(x, input_tensor) 
+        z = z.squeeze(-1)
+        return z
 
-        return x
 
-
-class SimpleMLPRunner(BaseRunner):
+class RandomBaselineRunner(BaseRunner):
     """Implements a linear model with training routine."""
 
     def __init__(self, **kwargs):
-        super(SimpleMLPRunner, self).__init__(**kwargs)
+        super(RandomBaselineRunner, self).__init__(**kwargs)
 
     def data_setup(self, fold: int, **kwargs) -> pl.LightningDataModule:
         """
@@ -127,7 +131,7 @@ class SimpleMLPRunner(BaseRunner):
         -------
         A model.
         """
-        model = SimpleMLP(
+        model = RandomBaseline(
             num_features=num_features,
             num_targets=num_targets,
             receptive_field = 30,
@@ -172,3 +176,9 @@ class SimpleMLPRunner(BaseRunner):
         self.predict(trainer=trainer, datamodule=datamodule, version=version)
 
         return trainer, datamodule, model
+
+
+if __name__ == '__main__':
+    model = RandomBaseline(8, 1, 30, 64)
+    input_tensor = torch.randn(1, 730, 8)
+    print(model(input_tensor))

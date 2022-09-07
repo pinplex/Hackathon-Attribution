@@ -4,8 +4,7 @@ from torch import Tensor
 
 from hackathon import BaseModel, BaseRunner, DataModule
 
-
-class SimpleMLP(BaseModel):
+class VeryRandomBaseline(BaseModel):
     """
     A very simple (one hidden layer) MLP to predict ahead
 
@@ -23,44 +22,85 @@ class SimpleMLP(BaseModel):
     def __init__(
         self,
         num_features: int,
+        num_features_1: int,
+        num_features_2: int,
+        num_features_3: int,
+        num_features_4: int,
         num_targets: int,
-        receptive_field: int,
-        hidden_size: int,
         **kwargs,
     ):
-        super(SimpleMLP, self).__init__(**kwargs)
+        super(VeryRandomBaseline, self).__init__(**kwargs)
+
+        self.num_targets = num_targets
 
         self.layer1 = torch.nn.Conv1d(
             in_channels = num_features,
-            out_channels = hidden_size,
-            kernel_size = receptive_field
+            out_channels = num_features_1,
+            kernel_size = 14,
+            stride = 13,
+            padding = 'valid'
         )
-        self.relu = torch.nn.ReLU()
         
         self.layer2 = torch.nn.Conv1d(
-            in_channels = hidden_size,
-            out_channels = num_targets,
-            kernel_size = 1
+            in_channels = num_features_1,
+            out_channels = num_features_2,
+            kernel_size = 7,
+            stride = 7,
+            padding = 'valid'
+        )
+        
+        self.layer3 = torch.nn.Conv1d(
+            in_channels = num_features_2,
+            out_channels = num_features_3,
+            kernel_size = 2,
+            stride = 2,
+            padding = 'valid'
+        )
+        
+        self.layer4 = torch.nn.Conv1d(
+            in_channels = num_features_3,
+            out_channels = num_features_4,
+            kernel_size = 2,
+            stride = 2,
+            padding = 'valid'
+        )
+        
+        self.layer5 = torch.nn.Conv1d(
+            in_channels = num_features_4,
+            out_channels = num_features,
+            kernel_size = 2,
+            stride = 2,
+            padding = 'valid'
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+        self.relu = torch.nn.ReLU()
+
+    def forward(self, input_tensor: Tensor) -> Tensor:
         """
         The forward function of the simple MLP
 
-        :param x: the input tensor
-        :type x: Tensor
+        :param input_tensor: the input tensor
+        :type input_tensor: Tensor
         """
 
-        x = torch.transpose(x, -1, -2)
+        x = torch.transpose(input_tensor, -1, -2)
         x = self.layer1(x)
         x = self.relu(x)
         x = self.layer2(x)
-        x = torch.transpose(x, -1, -2)
+        x = self.relu(x)
+        x = self.layer3(x)
+        x = self.relu(x)
+        x = self.layer4(x)
+        x = self.relu(x)
+        x = self.layer5(x)
+        input_tensor = input_tensor.unsqueeze(-2)
 
-        return x
+        z = torch.matmul(input_tensor, x) 
+        z = z.squeeze(-1)
+        return z
 
 
-class SimpleMLPRunner(BaseRunner):
+class VeryRandomRunner(BaseRunner):
     """Implements a linear model with training routine."""
 
     def __init__(self, **kwargs):
@@ -98,15 +138,15 @@ class SimpleMLPRunner(BaseRunner):
             # You may change these:
             train_subset={
                 "location": train_subset_locations,
-                "time": slice("1850", "2000"),
+                "time": slice("1850", "2004"),
             },
             valid_subset={
                 "location": valid_subset_locations,
-                "time": slice("2000", "2014"),
+                "time": slice("2005", "2014"),
             },
             test_subset={
                 "location": test_subset_locations,
-                "time": slice("2000", "2014"),
+                "time": slice("2005", "2014"),
             },
             window_size=1,
             context_size=1,
@@ -127,11 +167,13 @@ class SimpleMLPRunner(BaseRunner):
         -------
         A model.
         """
-        model = SimpleMLP(
+        model = VeryRandomBaseline(
             num_features=num_features,
             num_targets=num_targets,
-            receptive_field = 30,
-            hidden_size = 1024,
+            num_features_1 = 16,
+            num_features_2 = 32,
+            num_features_3 = 64,
+            num_features_4 = 128, 
             learning_rate=3e-4,
             weight_decay=1e-5,
         )
@@ -162,7 +204,7 @@ class SimpleMLPRunner(BaseRunner):
             num_targets=datamodule.num_targets,
         )
 
-        trainer = self.trainer_setup(version=version, patience = 20)
+        trainer = self.trainer_setup(version=version, patience = 400)
 
         # Fit model with training data (and valid data for early stopping.)
         trainer.fit(model, datamodule=datamodule)
@@ -172,3 +214,9 @@ class SimpleMLPRunner(BaseRunner):
         self.predict(trainer=trainer, datamodule=datamodule, version=version)
 
         return trainer, datamodule, model
+
+
+if __name__ == '__main__':
+    model = VeryRandomBaseline(8, 16, 32, 64, 128, 1)
+    input_tensor = torch.randn(1, 730, 8)
+    print(model(input_tensor).shape)

@@ -52,15 +52,15 @@ class LinearRunner(BaseRunner):
             # You may change these:
             train_subset={
                 'location': train_subset_locations,
-                'time': slice('1850', '1855')
+                'time': slice('1850', '2000')
             },
             valid_subset={
                 'location': valid_subset_locations,
-                'time': slice('1855', '1860')
+                'time': slice('2000', '2014')
             },
             test_subset={
                 'location': test_subset_locations,
-                'time': slice('1855', '1860')
+                'time': slice('2000', '2014')
             },
             window_size=1,
             context_size=1,
@@ -119,6 +119,7 @@ class LinearRunner(BaseRunner):
 
         # Fit model with training data (and valid data for early stopping.)
         trainer.fit(model, datamodule=datamodule)
+        trainer.test(model, datamodule=datamodule)
 
         # Final predictions on the test set.
         self.predict(trainer=trainer, datamodule=datamodule, version=version)
