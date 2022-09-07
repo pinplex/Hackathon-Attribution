@@ -2,9 +2,10 @@
 import os
 import shutil
 
+from hackathon.models.simplemlp import SimpleMLPRunner
 from hackathon.models.linear import LinearRunner
 
-models = [LinearRunner]
+models = [LinearRunner, SimpleMLPRunner]
 
 for Runner in models:
     model_name = Runner.__module__.split('.')[-1]
