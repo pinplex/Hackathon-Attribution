@@ -101,8 +101,11 @@ class LinearRunner(BaseRunner):
         A trained model.
         """
 
+        models = []
+
         fold = 0
-        version = f'fold_{fold:02d}'
+        for fold in range(10):
+            version = f'fold_{fold:02d}'
 
         datamodule = self.data_setup(
             fold=fold,
