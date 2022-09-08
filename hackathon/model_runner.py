@@ -10,7 +10,7 @@ import torch
 from torch import Tensor
 import xarray as xr
 
-from typing import Optional
+from typing import Optional, Callable, Union, Any
 
 from hackathon.data_pipeline import DataModule
 from hackathon.base_model import BaseModel
@@ -40,16 +40,28 @@ class Ensemble(pl.LightningModule):
             )
 
     def forward(self, x: Tensor) -> Tensor:
-        """Forward call, all ensemble members and reduces the output."""
+        """Forward call all ensemble members and reduces the output."""
         y_hats = []
         for module in self.models:
             y_hat, _ = module.common_step(x)
             y_hats.append(y_hat)
 
         y_hats = torch.stack(y_hats, dim=0)
+
         y_hat = self.aggr_fn(y_hats)
 
         return y_hat
+
+    def predict_step(
+            self,
+            batch: dict[str, Union[Tensor, dict[str, Any]]],
+            batch_idx: int,
+            dataloader_idx: int = 0) -> None:
+        y_hat = self(batch)
+
+        dataset = self.trainer.predict_dataloaders[dataloader_idx].dataset
+
+        dataset.assign_predictions(pred=y_hat, data_sel=batch['data_sel'])
 
     @staticmethod
     def mean_agg(x: Tensor) -> Tensor:
@@ -89,7 +101,8 @@ class ModelRunner(object):
         Parameters
         ----------
         fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
-            Override and implement your own data splitting routine.
+            Override and implement your own data splitting routine. If fold = -1, the test
+            data is returned.
         kwargs: Are passed to the DataModule.
 
         Returns
@@ -97,15 +110,25 @@ class ModelRunner(object):
         A datamodule of type pl.LightningDataModule.
         """
 
-        train_locs, valid_locs = self.get_cv_loc_split(fold)
-        train_sel = {
-            'location': [1] if self.quickrun else train_locs,
-            'time': slice('1850', '1855') if self.quickrun else slice('1850', '2004')
-        }
-        valid_sel = {
-            'location': [2] if self.quickrun else valid_locs,
-            'time': slice('2000', '2005') if self.quickrun else slice('2005', '2014')
-        }
+        if fold == -1:
+            train_sel = {
+                'location': [1],
+                'time': slice('1850', '1855')
+            }
+            valid_sel = {
+                'location': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                'time': slice('2005', '2014')
+            }
+        else:
+            train_locs, valid_locs = self.get_cv_loc_split(fold)
+            train_sel = {
+                'location': [1] if self.quickrun else train_locs,
+                'time': slice('1850', '1855') if self.quickrun else slice('1850', '2004')
+            }
+            valid_sel = {
+                'location': [2] if self.quickrun else valid_locs,
+                'time': slice('2005', '2010') if self.quickrun else slice('2005', '2014')
+            }
 
         datamodule = DataModule(
             # You may keep these:
@@ -125,7 +148,7 @@ class ModelRunner(object):
     def trainer_setup(
             self,
             version: str,
-            patience: int = 20,
+            patience: int = 15,
             max_epochs: int = -1,
             **kwargs) -> pl.Trainer:
         """Trainer setup.
@@ -161,6 +184,57 @@ class ModelRunner(object):
         )
 
         return trainer
+
+    def train(self, model_fn: Callable[[dict[str, Tensor]], BaseModel], **kwargs) -> tuple[pl.Trainer, BaseModel]:
+        """Runs training.
+
+        Note:
+        This is just a blueprint, you may implement your own training routine here, e.g.,
+        cross validation. At the end, one single model must be returned.
+
+        Parameters
+        ----------
+        model_fn: a function that returns an initialized model and takes norm_stats
+            as argument.
+        kwargs: passed to pl.Trainer.
+
+        Returns
+        -------
+        - The pl.trainer.
+        - The trained model.
+        """
+
+        models = []
+        for fold in range(1) if self.quickrun else range(10):
+            version = f'fold_{fold:02d}'
+
+            datamodule = self.data_setup(
+                fold=fold,
+                batch_size=10,
+                num_workers=10
+            )
+
+            model = model_fn(norm_stats=datamodule.norm_stats)
+
+            trainer = self.trainer_setup(
+                version=version,
+                **kwargs
+            )
+
+            # Fit model with training data (and valid data for early stopping.)
+            trainer.fit(model, datamodule=datamodule)
+
+            # Load best model.
+            self.load_best_model(trainer=trainer, model=model)
+
+            # Final predictions on the test set.
+            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
+
+            models.append(model)
+
+        ensemble = Ensemble(models)
+
+        return trainer, ensemble
 
     def predict(
             self,
@@ -242,52 +316,3 @@ class ModelRunner(object):
             )
 
         return train_loc, valid_loc
-
-    def train(self, model: BaseModel, **kwargs) -> tuple[pl.Trainer, pl.LightningDataModule, BaseModel]:
-        """Runs training.
-
-        Note:
-        This is just a blueprint, you may implement your own training routine here, e.g.,
-        cross validation. At the end, one single model must be returned.
-
-        Parameters
-        ----------
-        model: the model to train.
-        kwargs: passed to pl.Trainer.
-
-        Returns
-        -------
-        - The pl.trainer.
-        - The datamodule.
-        - The trained model.
-        """
-
-        models = []
-        for fold in range(1) if self.quickrun else range(10):
-            version = f'fold_{fold:02d}'
-
-            datamodule = self.data_setup(
-                fold=fold,
-                batch_size=10,
-                num_workers=10
-            )
-
-            trainer = self.trainer_setup(
-                version=version,
-                **kwargs  # TODO
-            )
-
-            # Fit model with training data (and valid data for early stopping.)
-            trainer.fit(model, datamodule=datamodule)
-
-            # Load best model.
-            self.load_best_model(trainer=trainer, model=model)
-
-            # Final predictions on the test set.
-            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
-
-            models.append(model)
-
-        ensemble = Ensemble(models)
-
-        return trainer, datamodule, ensemble

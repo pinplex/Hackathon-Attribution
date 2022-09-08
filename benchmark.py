@@ -11,26 +11,30 @@ from hackathon.models.linear import model_setup as linear_model
 model_funs = [linear_model]
 
 def main(args: Namespace):
-    for model_fun in model_funs:
+    for model_fn in model_funs:
         
-        model_name = model_fun.__module__.split('.')[-1]
+        model_name = model_fn.__module__.split('.')[-1]
         log_dir = f'./hackathon/logs/{model_name}'
         if os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
 
-        model = model_fun()
-
         # Training.
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
-        trainer, datamodule, model = runner.train(
-            model=model,
+        trainer, model = runner.train(
+            model_fn=model_fn,
             max_epochs=1 if args.quickrun else -1,
             accelerator=None if args.gpu == -1 else 'gpu',
             devices=None if args.gpu == -1 else f'{args.gpu},')
+        runner.save_model(model=model, version='final')
 
         # Evaluating.
-        runner.predict(trainer=trainer, model=model, datamodule=datamodule, version='final')
-        runner.save_model(model=model, version='final')
+        datamodule = runner.data_setup(fold=-1)
+        #from IPython import embed; embed()
+        runner.predict(
+            trainer=trainer,
+            model=model,
+            datamodule=datamodule,
+            version='final')
 
 
 if __name__ == '__main__':
