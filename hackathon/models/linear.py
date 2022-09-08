@@ -10,15 +10,20 @@ class Linear(BaseModel):
         super(Linear, self).__init__(**kwargs)
 
         self.linear = torch.nn.Linear(num_features, num_targets)
-        self.relu = torch.nn.ReLU()
+        self.softplus = torch.nn.Softplus()
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.relu(self.linear(x))
+        out = self.softplus(self.linear(x))
         return out
 
 
-def model_setup():
+def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
     """Create a model as subclass of hackathon.base_model.BaseModel.
+
+    Parameters
+    ----------
+    norm_stats: Feature normalization stats with signature {'mean': Tensor, 'std': Tensor},
+        both tensors with shape (num_features,).
 
     Returns
     -------
@@ -29,6 +34,7 @@ def model_setup():
         num_targets=1,
         learning_rate=0.01,
         weight_decay=0.0,
+        norm_stats=norm_stats
     )
 
     return model
