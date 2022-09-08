@@ -84,7 +84,7 @@ class ModelRunner(object):
         Parameters
         ----------
         log_dir: The root experiment directory to save logs and checkpoints to.
-        quickrun: If set to true, less data is used for training adn only 1 CV fold is run.
+        quickrun: If set to true, less data is used for training adn only two CV fold is run.
         seed: The random seed.        
         """
 
@@ -205,7 +205,7 @@ class ModelRunner(object):
         """
 
         models = []
-        for fold in range(1) if self.quickrun else range(10):
+        for fold in range(2) if self.quickrun else range(10):
             version = f'fold_{fold:02d}'
 
             datamodule = self.data_setup(
@@ -233,6 +233,7 @@ class ModelRunner(object):
             models.append(model)
 
         ensemble = Ensemble(models)
+        self.save_model(model=ensemble, version='final')
 
         return trainer, ensemble
 
@@ -280,7 +281,7 @@ class ModelRunner(object):
         torch.save(model, save_path)
 
     @staticmethod
-    def load_best_model(trainer: pl.Trainer, model: BaseModel) -> None:
+    def load_best_model(trainer: pl.Trainer, model: BaseModel) -> str:
         """Load best model (inplace).
         
         Parameters
@@ -288,10 +289,15 @@ class ModelRunner(object):
         trainer: a trainer on which '.fit(...)' has been run before.
         model: a model.
 
+        Returns
+        -------
+        The best model checkpoint path.
         """
 
         best_model = trainer.checkpoint_callback.best_model_path
         model.load_from_checkpoint(best_model)
+
+        return best_model
 
     @staticmethod
     def get_cv_loc_split(fold: int) -> tuple[list[int], list[int]]:
