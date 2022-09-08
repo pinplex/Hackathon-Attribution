@@ -1,5 +1,5 @@
 from .data_pipeline import DataModule
-from .base_runner import BaseRunner, Ensemble
+from .model_runner import ModelRunner, Ensemble
 from .base_model import BaseModel
 
-__all__ = ['DataModule', 'BaseRunner', 'BaseModel', 'Ensemble']
+__all__ = ['DataModule', 'ModelRunner', 'BaseModel', 'Ensemble']

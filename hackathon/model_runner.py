@@ -59,71 +59,68 @@ class Ensemble(pl.LightningModule):
     def median_agg(x: Tensor) -> Tensor:
         return torch.median(x, dim=0)
 
-class BaseRunner(object):
-    """BaseRunner implements the training scheme.
-    
-    * Meant to be subclassed.
-    * In subclass, override
-        * `MySubclass.data_setup` to define the dataloader,
-        * `MySubclass.model_setup` to define the model, and
-        * `MySubclass.train` to define the training routine.
-
-    Example:
-        >>> class MyRunner(BaseRunner):
-                def data_setup(self) -> DataModule:
-                    train_selection, valid_selection = f(fold)
-                    datamodule = DataModule(...)
-                    return datamodule, model
-        >>> runner = MyRunner()
-        >>> runner.train()
-
+class ModelRunner(object):
+    """ModelRunner implements the training scheme.
     """
     def __init__(
         self,
         log_dir: str,
+        quickrun: bool = False,
         seed: Optional[int] = None) -> None:
         """Initialize BaseRunner.
 
         Parameters
         ----------
         log_dir: The root experiment directory to save logs and checkpoints to.
+        quickrun: If set to true, less data is used for training adn only 1 CV fold is run.
         seed: The random seed.        
         """
 
         self.log_dir = log_dir
         os.makedirs(self.log_dir, exist_ok=True)
 
+        self.quickrun = quickrun
+
         pl.seed_everything(seed)
 
-    @abstractmethod
-    def data_setup(self, fold: int, **kwargs) -> DataModule:
-        """Setup datamodule of class DataModule with a given cross validation fold.
-        
-        Must be overridden in subclass.
+    def data_setup(self, fold: int, **kwargs) -> pl.LightningDataModule:
+        """Setup datamodule of class pl.LightningDataModule with a given cross validation fold.
 
         Parameters
         ----------
-        fold (int): the fold id, a dummy parameter that must be 0.
+        fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
             Override and implement your own data splitting routine.
+        kwargs: Are passed to the DataModule.
 
         Returns
         -------
-        A datamodule of type DataModule.
+        A datamodule of type pl.LightningDataModule.
         """
 
-        pass
+        train_locs, valid_locs = self.get_cv_loc_split(fold)
+        train_sel = {
+            'location': [1] if self.quickrun else train_locs,
+            'time': slice('1850', '1855') if self.quickrun else slice('1850', '2004')
+        }
+        valid_sel = {
+            'location': [2] if self.quickrun else valid_locs,
+            'time': slice('2000', '2005') if self.quickrun else slice('2005', '2014')
+        }
 
-    @abstractmethod
-    def model_setup(self) -> pl.LightningModule:
-        """Create a model whihc must be a subclass of hackathon.base_model.BaseModel.
-        
-        Must be overridden in subclass.
+        datamodule = DataModule(
+            # You may keep these:
+            data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+            features=[f'var{i}' for i in range(1, 8)] + ['co2'],
+            targets=['GPP'],
+            # You may change these:
+            train_subset=train_sel,
+            valid_subset=valid_sel,
+            test_subset=valid_sel,
+            window_size=3,
+            context_size=1,
+            **kwargs)
 
-        Returns
-        -------
-        A model.
-        """
-        pass
+        return datamodule
 
     def trainer_setup(
             self,
@@ -164,28 +161,6 @@ class BaseRunner(object):
         )
 
         return trainer
-
-    @abstractmethod
-    def train(self) -> tuple[pl.Trainer, DataModule, pl.LightningModule]:
-        """Runs training.
-
-        Must be overridden in subclass.
-
-        Note
-        ----
-
-        If multiple models are trained (e.g., cross validation) within this method:
-        * use `trainer_setup(version=...)` to log multiple models. Each one will have its own subdirectory (`log_dir/version`).
-        * you can pass a list of trained models to the `hackathon.base_runner.Ensemble` class and return it as a single model.
-
-        Returns
-        -------
-        - the trainer: pl.Trainer
-        - the data module: DataModule
-        - the trained model: pl.LightningModule
-        """
-
-        pass
 
     def predict(
             self,
@@ -267,3 +242,52 @@ class BaseRunner(object):
             )
 
         return train_loc, valid_loc
+
+    def train(self, model: BaseModel, **kwargs) -> tuple[pl.Trainer, pl.LightningDataModule, BaseModel]:
+        """Runs training.
+
+        Note:
+        This is just a blueprint, you may implement your own training routine here, e.g.,
+        cross validation. At the end, one single model must be returned.
+
+        Parameters
+        ----------
+        model: the model to train.
+        kwargs: passed to pl.Trainer.
+
+        Returns
+        -------
+        - The pl.trainer.
+        - The datamodule.
+        - The trained model.
+        """
+
+        models = []
+        for fold in range(1) if self.quickrun else range(10):
+            version = f'fold_{fold:02d}'
+
+            datamodule = self.data_setup(
+                fold=fold,
+                batch_size=10,
+                num_workers=10
+            )
+
+            trainer = self.trainer_setup(
+                version=version,
+                **kwargs  # TODO
+            )
+
+            # Fit model with training data (and valid data for early stopping.)
+            trainer.fit(model, datamodule=datamodule)
+
+            # Load best model.
+            self.load_best_model(trainer=trainer, model=model)
+
+            # Final predictions on the test set.
+            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
+
+            models.append(model)
+
+        ensemble = Ensemble(models)
+
+        return trainer, datamodule, ensemble
