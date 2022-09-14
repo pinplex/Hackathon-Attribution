@@ -18,7 +18,7 @@ from hackathon.base_model import BaseModel
 
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
-    def __init__(self, model_list: list[BaseModel], aggregate_fun: str = 'mean') -> None:
+    def __init__(self, model_type_list: list[type], checkpoint_path_list: list[str], aggregate_fun: str = 'mean') -> None:
         """Initializes Ensemble.
 
         Parameters
@@ -28,7 +28,19 @@ class Ensemble(pl.LightningModule):
             \'mean\' (default) or \'median\'.
         """
         super().__init__()
-        self.models = torch.nn.ModuleList(model_list)
+
+        # Directly passing the trained models causes an error (`ReferenceError: weakly-referenced
+        # object no longer exists`), that's why we reload the models here.
+        if len(model_type_list) != len(checkpoint_path_list):
+            raise ValueError(
+                'length of `model_type_list` must be equal to length of `checkpoint_paths`.'
+            )
+
+        models = []
+        for model_type, checkpoint_path in zip(model_type_list, checkpoint_path_list):
+            models.append(model_type.load_from_checkpoint(checkpoint_path))
+
+        self.models = torch.nn.ModuleList(models)
 
         if aggregate_fun == 'mean':
             self.aggr_fn = self.mean_agg
@@ -84,7 +96,7 @@ class ModelRunner(object):
         Parameters
         ----------
         log_dir: The root experiment directory to save logs and checkpoints to.
-        quickrun: If set to true, less data is used for training adn only two CV fold is run.
+        quickrun: If set to true, less data is used for training and only two CV folds are run.
         seed: The random seed.        
         """
 
@@ -122,11 +134,11 @@ class ModelRunner(object):
         else:
             train_locs, valid_locs = self.get_cv_loc_split(fold)
             train_sel = {
-                'location': [1] if self.quickrun else train_locs,
+                'location': [fold + 1] if self.quickrun else train_locs,
                 'time': slice('1850', '1855') if self.quickrun else slice('1850', '2004')
             }
             valid_sel = {
-                'location': [2] if self.quickrun else valid_locs,
+                'location': [2 - fold] if self.quickrun else valid_locs,
                 'time': slice('2005', '2010') if self.quickrun else slice('2005', '2014')
             }
 
@@ -204,7 +216,8 @@ class ModelRunner(object):
         - The trained model.
         """
 
-        models = []
+        model_types = []
+        checkpoint_paths = []
         for fold in range(2) if self.quickrun else range(10):
             version = f'fold_{fold:02d}'
 
@@ -225,14 +238,15 @@ class ModelRunner(object):
             trainer.fit(model, datamodule=datamodule)
 
             # Load best model.
-            self.load_best_model(trainer=trainer, model=model)
+            checkpoint_path = self.load_best_model(trainer=trainer, model=model)
 
             # Final predictions on the test set.
             self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
 
-            models.append(model)
+            model_types.append(type(model))
+            checkpoint_paths.append(checkpoint_path)
 
-        ensemble = Ensemble(models)
+        ensemble = Ensemble(model_type_list=model_types, checkpoint_path_list=checkpoint_paths)
         self.save_model(model=ensemble, version='final')
 
         return trainer, ensemble

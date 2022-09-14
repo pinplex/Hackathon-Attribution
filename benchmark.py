@@ -25,7 +25,6 @@ def main(args: Namespace):
             max_epochs=1 if args.quickrun else -1,
             accelerator=None if args.gpu == -1 else 'gpu',
             devices=None if args.gpu == -1 else f'{args.gpu},')
-        runner.save_model(model=model, version='final')
 
         # Evaluating.
         datamodule = runner.data_setup(fold=-1)
@@ -42,12 +41,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--quickrun',
         action='store_true',
-        help='Quick development run with only 1 epoch and 1 CV fold.')
+        help='Quick development run with only 1 epoch and 2 CV folds, less data.')
     parser.add_argument(
         '--gpu',
         type=int,
         default=-1,
-        help='GPU ID to use. -1 (default) deactivates GPU.')
+        help='GPU ID to use, -1 (default) deactivates GPU.')
 
     args = parser.parse_args()
 
