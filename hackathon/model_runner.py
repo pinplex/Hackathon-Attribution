@@ -224,7 +224,7 @@ class ModelRunner(object):
             datamodule = self.data_setup(
                 fold=fold,
                 batch_size=10,
-                num_workers=10
+                num_workers=0
             )
 
             model = model_fn(norm_stats=datamodule.norm_stats)
