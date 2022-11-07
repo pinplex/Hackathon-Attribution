@@ -162,7 +162,7 @@ class MultiheadAttn(BaseModel):
         return torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
 
 
-def model_setup():
+def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
     """Create a model as subclass of hackathon.base_model.BaseModel.
 
     Returns
@@ -179,6 +179,7 @@ def model_setup():
         dropout=0.1,
         learning_rate=0.001,
         weight_decay=0.001,
+        norm_stats=norm_stats
     )
 
     return model
