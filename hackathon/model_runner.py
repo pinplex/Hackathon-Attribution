@@ -197,7 +197,11 @@ class ModelRunner(object):
 
         return trainer
 
-    def train(self, model_fn: Callable[[dict[str, Tensor]], BaseModel], **kwargs) -> tuple[pl.Trainer, BaseModel]:
+    def train(
+            self,
+            model_fn: Callable[[dict[str, Tensor]], BaseModel],
+            fold: Optional[int] = None,
+            **kwargs) -> tuple[pl.Trainer, BaseModel]:
         """Runs training.
 
         Note:
@@ -208,6 +212,8 @@ class ModelRunner(object):
         ----------
         model_fn: a function that returns an initialized model and takes norm_stats
             as argument.
+        fold: optional fold ID, an integer in the range [0, 9]. If passed, only the given fold
+            will be used for training. Else, the 10 folds are iterated (2 if `quickrun=True`)
         kwargs: passed to pl.Trainer.
 
         Returns
@@ -218,7 +224,12 @@ class ModelRunner(object):
 
         model_types = []
         checkpoint_paths = []
-        for fold in range(2) if self.quickrun else range(10):
+
+        if fold is None:
+            iter_folds = range(2) if self.quickrun else range(10)
+        else:
+            iter_folds = [fold]
+        for fold in iter_folds:
             version = f'fold_{fold:02d}'
 
             datamodule = self.data_setup(
