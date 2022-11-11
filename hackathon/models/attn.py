@@ -110,6 +110,8 @@ class MultiheadAttn(BaseModel):
             out_features=num_outputs
         )
 
+        self.activation_out = nn.Softplus()
+
         # self.attn_scores = {}
         # for i, layer in enumerate(self.transformer_encoder.layers):
         #     layer.self_attn.register_forward_hook(self.get_activation(f'attn_layer_{i:02d}'))
@@ -155,7 +157,8 @@ class MultiheadAttn(BaseModel):
         out = out + src
 
         # [B, S, D] -> [B, S, O]
-        out = self.linear_y(out)        
+        out = self.linear_y(out)
+        out = self.activation_out(out)        
 
         return out
 
