@@ -143,37 +143,64 @@ class TSData(Dataset):
         Parameters
         ----------
         pred: Tensor
-            The predictions with shape (batch_size, seq_len, num_targets).
+            The predictions with shape
+                - (batch_size, seq_len, num_targets) or
+                - (quantiles=3, batch_size, seq_len, num_targets)
         data_sel: dict[str, Any]
             The dictionary which is returned by the dataloader, containing location and time
             slices to assign the predictions to the right coordinates.
 
         """
 
-        time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
-        if any((len(data_sel[key]) != pred.shape[0] for key in time_sel_keys)):
-            raise AssertionError(
-                'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
-            )
-
         pred = pred.detach().cpu()
-
         if pred.shape[-1] != self.num_targets:
             raise AssertionError(
                 'the last dimension of `pred` must have size equal to the number of targets.'
             )
 
-        for b in range(pred.shape[0]):
+        if pred.ndim == 3:
 
-            sel_assign = {
-                'location': data_sel['loc'][b].cpu(),
-                'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
-            }
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != pred.shape[0] for key in time_sel_keys)):
+                raise AssertionError(
+                    'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
+                )
 
-            for target_i, target in enumerate(self.targets):
-                p = pred[b, -data_sel['pred_len'][b]:, target_i]
+            for b in range(pred.shape[0]):
 
-                self.ds[target + '_hat'].loc[sel_assign] = p
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                    'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
+                }
+
+                for target_i, target in enumerate(self.targets):
+                    p = pred[b, -data_sel['pred_len'][b]:, target_i]
+
+                    self.ds[target + '_hat'].loc[{**sel_assign, 'quantile': 0.5}] = p
+
+        elif pred.ndim == 4:
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != pred.shape[1] for key in time_sel_keys)):
+                raise AssertionError(
+                    'second dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
+                )
+
+            for b in range(pred.shape[1]):
+
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                    'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
+                }
+
+                for target_i, target in enumerate(self.targets):
+                    p = pred[:, b, -data_sel['pred_len'][b]:, target_i]
+
+                    for i, q in enumerate([0.1, 0.5, 0.9]):
+                        self.ds[target + '_hat'].loc[{**sel_assign, 'quantile': q}] = p[i, ...]
+        else:
+            raise ValueError(
+                f'predictions must have 3 or 4 dimensions, is {pred.ndim}.'
+            )
 
     @abstractmethod
     def get_norm_stats(
@@ -378,7 +405,9 @@ class DataModule(pl.LightningDataModule):
 
         # Create empty target variables with naming `<target>_hat`.
         for target in self.targets:
-            self.ds[target + '_hat'] = xr.full_like(self.ds[target], np.nan)
+            dummy = xr.full_like(self.ds[target], np.nan)
+            dummy = dummy.expand_dims(quantile=[0.1, 0.5, 0.9])
+            self.ds[target + '_hat'] = dummy
 
         self.ds['code'] = xr.full_like(self.ds[self.targets[0]], -1)
 
@@ -398,7 +427,6 @@ class DataModule(pl.LightningDataModule):
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
-
         return self._create_dataloader(self.test_subset, shuffle=False, return_full_seq=True)
 
     def predict_dataloader(self) -> DataLoader:
