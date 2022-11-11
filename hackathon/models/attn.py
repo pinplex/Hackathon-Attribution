@@ -3,6 +3,8 @@ from torch import nn, Tensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import math
 
+from typing import Iterable, Any
+
 from hackathon import BaseModel
 
 
@@ -171,13 +173,13 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
     """
 
     default_params = dict(
-        d_model=4,
-        num_head=4,
-        num_hidden=8,
-        num_layers=2,
-        dropout=0.1,
+        d_model=16,
+        num_head=2,
+        num_hidden=64,
+        num_layers=3,
+        dropout=0.3,
         learning_rate=0.001,
-        weight_decay=0.001,
+        weight_decay=0.01,
     )
     default_params.update(kwargs)
 
@@ -189,3 +191,16 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
     )
 
     return model
+
+def get_search_space() -> dict[str, Iterable[Any]]:
+    search_space = {
+        'd_model': [8, 16, 32],
+        'num_head': [1, 2, 4],
+        'num_hidden': [32, 64],
+        'num_layers': [1, 2, 3],
+        'dropout': [0.0, 0.15, 0.3],
+        'learning_rate': [1e-4, 1e-3, 1e-2],
+        'weight_decay': [1e-4, 1e-3, 1e-2],
+    }
+
+    return search_space
