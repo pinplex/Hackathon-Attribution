@@ -18,14 +18,12 @@ from hackathon.base_model import BaseModel
 
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
-    def __init__(self, model_type_list: list[type], checkpoint_path_list: list[str], aggregate_fun: str = 'mean') -> None:
+    def __init__(self, model_type_list: list[type], checkpoint_path_list: list[str]) -> None:
         """Initializes Ensemble.
 
         Parameters
         ----------
         model_list: A list of models, each a BaseModel.
-        aggregate_fun: the aggregation function to reduces ensemble runs, one of
-            \'mean\' (default) or \'median\'.
         """
         super().__init__()
 
@@ -42,15 +40,6 @@ class Ensemble(pl.LightningModule):
 
         self.models = torch.nn.ModuleList(models)
 
-        if aggregate_fun == 'mean':
-            self.aggr_fn = self.mean_agg
-        elif aggregate_fun == 'median':
-            self.aggr_fn = self.median_agg
-        else:
-            raise ValueError(
-                f'`aggregate_fun` must be \'mean\' or \'median\', is \'{aggregate_fun}\'.'
-            )
-
     def forward(self, x: Tensor) -> Tensor:
         """Forward call all ensemble members and reduces the output."""
         y_hats = []
@@ -59,21 +48,21 @@ class Ensemble(pl.LightningModule):
             y_hats.append(y_hat)
 
         y_hats = torch.stack(y_hats, dim=0)
+        y_hats_q = y_hats.quantile(q=torch.tensor([0.1, 0.5, 0.9], device=y_hats.device), dim=0)
 
-        y_hat = self.aggr_fn(y_hats)
-
-        return y_hat
+        return y_hats_q
 
     def predict_step(
             self,
             batch: dict[str, Union[Tensor, dict[str, Any]]],
             batch_idx: int,
             dataloader_idx: int = 0) -> None:
-        y_hat = self(batch)
+
+        y_hat_q = self(batch)
 
         dataset = self.trainer.predict_dataloaders[dataloader_idx].dataset
 
-        dataset.assign_predictions(pred=y_hat, data_sel=batch['data_sel'])
+        dataset.assign_predictions(pred=y_hat_q, data_sel=batch['data_sel'])
 
     @staticmethod
     def mean_agg(x: Tensor) -> Tensor:
@@ -114,7 +103,7 @@ class ModelRunner(object):
         ----------
         fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
             Override and implement your own data splitting routine. If fold = -1, the test
-            data is returned.
+            data is returned (not implemented yet).
         kwargs: Are passed to the DataModule.
 
         Returns
@@ -201,7 +190,7 @@ class ModelRunner(object):
             self,
             model_fn: Callable[[dict[str, Tensor]], BaseModel],
             fold: Optional[int] = None,
-            **kwargs) -> tuple[pl.Trainer, BaseModel]:
+            **kwargs) -> tuple[pl.Trainer, Ensemble]:
         """Runs training.
 
         Note:
@@ -219,11 +208,12 @@ class ModelRunner(object):
         Returns
         -------
         - The pl.trainer.
-        - The trained model.
+        - The ensemble of trained models.
         """
 
         model_types = []
         checkpoint_paths = []
+        scores = []
 
         if fold is None:
             iter_folds = range(2) if self.quickrun else range(10)
@@ -251,6 +241,10 @@ class ModelRunner(object):
             # Load best model.
             checkpoint_path = self.load_best_model(trainer=trainer, model=model)
 
+            # Test model.
+            score = trainer.test(model, datamodule=datamodule)
+            scores.append(score)
+
             # Final predictions on the test set.
             self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
 
@@ -260,12 +254,12 @@ class ModelRunner(object):
         ensemble = Ensemble(model_type_list=model_types, checkpoint_path_list=checkpoint_paths)
         self.save_model(model=ensemble, version='final')
 
-        return trainer, ensemble
+        return trainer, ensemble, scores
 
     def predict(
             self,
             trainer: pl.Trainer,
-            model: BaseModel,
+            model: Ensemble,
             datamodule: DataModule,
             version: str) -> xr.Dataset:
         """Make predictions with the `datamodule.predict_dataloader`.
@@ -277,7 +271,7 @@ class ModelRunner(object):
         Parameters
         ----------
         trainer: a trainer on which '.fit(...)' has been run before.
-        model: a trained model.
+        model: a trained ensemble.
         datamodule: the datamodule.
         version: The run version (e.g., 'fold_00' if you run a cross-validation, or 'final').
             Predictions will be saved to `log_dir/version/predictions.nc`. Make sure to match with
