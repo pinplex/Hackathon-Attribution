@@ -25,7 +25,7 @@ This repository contains code and data for the attribution hackathon.
 | ---  | ---         |
 | `hackathon/models/linear.py` | A dummy model. |
 | `hackathon/base_model.py` | The base model class. |
-| `hackathon/base_runner.py` | The base runner class. |
+| `hackathon/model_runner.py` | The model runner class. |
 | `hackathon/data_pipeline.py` | The dataloader. |
 | `benchmark.py` | Evaluate model. |
 
@@ -33,19 +33,60 @@ This repository contains code and data for the attribution hackathon.
 
 1. Make a copy of `hackathon/models/linear.py` within the same directory and rename it to a meaningful name, e.g., `hackathon/models/rnn.py`.
 1. Replace the class `Linear` with your model, give it a meaningful name, e.g., `class RNN(BaseModel)`. The model **must** subclass `BaseModel`!
-1. Create your own runner:
-    * Rename the existing class `LinearRunner` to something meaningful (e.g., `LinearRunner`), and define how the `datamodule` and the `model` are created in the methods `data_setup` and `model_setup`, respectively. Hard-code all parameters. The parameters of `DataModule` may be changed, they current values are probably not very smart (e.g., temporal splitting).
-    * Override the method `train`: this is the training routine. It is important that you return a single model from the `train` method; you can do a cross validation within this method and combine multiple trained models with the class `hackathon.base_runner.Ensemble`.
-1. Add your model to the `benchmark.py` file (import and add it `models = [MyModel]`).
-1. To run your model with `python benchmark.py`.
+1. The model `__init__` method must take `**kwargs` and pass them to the parent class (`BaseModel`) like so:
+    ```
+    class MyModel(BaseModel):
+        def __init__(self, num_features: int, num_targets: int, **kwargs) -> None:
+            super(Linear, self).__init__(**kwargs)
 
-__Craete your own model and don't push it to the common repository until the hackathon meeting (to make sure that we come up with independent solutions).__
+            self.linear = torch.nn.Linear(num_features, num_targets)
+            self.softplus = torch.nn.Softplus()
 
-__Don't just take the parameters from the dumy model, they are intentionally set to bad values (e.g., temporal splitting does not even use all data)__
+        def forward(self, x: Tensor) -> Tensor:
+            out = self.softplus(self.linear(x))
+            return out
+    ```
+
+
+1. Define a function `model_setup` within the same file that returns an initialized model (e.g., `hackathon/models/rnn.py`). The function must take the argument `norm_stats`. The `model_setup` function must follow this pattern:
+    ```
+    def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
+        """Create a model as subclass of hackathon.base_model.BaseModel.
+
+        Parameters
+        ----------
+        norm_stats: Feature normalization stats with signature {'mean': Tensor, 'std': Tensor},
+            both tensors with shape (num_features,).
+
+        Returns
+        -------
+        A model.
+        """
+        model = MyCustomModel(  # <- Is a subclass of BaseModel
+            num_features=8,  # <- A model HP
+            num_targets=1,  # <- A model HP
+            num_layers=1000000,  # <- A model HP
+            ... # more model HPs
+            learning_rate=0.01,  # <- BaseModel kwarg
+            weight_decay=0.0,  # <- BaseModel kwarg
+            norm_stats=norm_stats)  # <- BaseModel kwarg
+
+        return model
+    ```
+1. Add your model to the `benchmark.py` file by importing and adding the `model_setup` function:
+    ```
+    from hackathon.models.linear import model_setup as linear_model
+
+    model_funs = [linear_model]
+    ```
+1. Run your model with `python benchmark.py` (`--quickrun` for developer run over one epoch / CV fold with less training and validation data).
 
 ## Logging
 
 * The `log_dir` argument sets the base directory of the experiment.
-* The `version` argument in `MyRunner.trainer_setup(version=...)` sets the logging to `log_dir/version`, where checkpoints and logs are saved to. A version could be a cross validation fold, for example. Use tensorboard to check the logs. You most likely call `MyRunner.trainer_setup` from within `MyRunner.train`.
-* If you need predictions for every version run (e.g., cross validation fold), call `self.predict(trainer=trainer, datamodule=datamodule, version=version)` as in the `linear.py` example. The final predictions on the test set are saved to `log_dir/version/predictions.nc`
-* The `benchmark.py` script evaluates the model and saves whatever model is return from `MyRunner.run(...)` along with final predictions, both with version `final`.
+* Cross validation runs are each put into a subdirectory (`log_dir/fold_00` etc.)
+* The final model (ensemble of all CV models) and its predictions are saved in `log_dir/final`
+
+0  0 1  1 2
+1  1 0  2 1
+

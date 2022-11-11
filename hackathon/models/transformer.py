@@ -1,10 +1,9 @@
-import pytorch_lightning as pl
 import torch
 from torch import nn, Tensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import math
 
-from hackathon import BaseModel, BaseRunner, DataModule, Ensemble
+from hackathon import BaseModel
 
 
 class PermuteBatchSeq(nn.Module):
@@ -163,141 +162,23 @@ class MultiheadAttn(BaseModel):
         return torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
 
 
-class AttnRunner(BaseRunner):
-    """Implements a linear model with training routine."""
-    def data_setup(self, fold: int, **kwargs) -> pl.LightningDataModule:
-        """Setup datamodule of class pl.LightningDataModule with a given cross validation fold.
+def model_setup():
+    """Create a model as subclass of hackathon.base_model.BaseModel.
 
-        Parameters
-        ----------
-        fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
-            Override and implement your own data splitting routine.
-        kwargs: Are passed to the DataModule.
+    Returns
+    -------
+    A model.
+    """
+    model = MultiheadAttn(
+        num_inputs=8,
+        num_outputs=1,
+        d_model=4,
+        num_head=4,
+        num_hidden=8,
+        num_layers=2,
+        dropout=0.1,
+        learning_rate=0.001,
+        weight_decay=0.001,
+    )
 
-        Returns
-        -------
-        A datamodule of type pl.LightningDataModule.
-        """
-
-        train_locs, valid_locs = self.get_loc_split(fold)
-        train_sel = {
-            'location': train_locs,
-            'time': slice('1850', '2009')
-        }
-        valid_sel = {
-            'location': valid_locs,
-            'time': slice('2010', '2014')
-        }
-
-        datamodule = DataModule(
-            # You may keep these:
-            data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
-            features=[f'var{i}' for i in range(1, 8)] + ['co2'],
-            targets=['GPP'],
-            # You may change these:
-            train_subset=train_sel,
-            valid_subset=valid_sel,
-            test_subset=valid_sel,
-            window_size=3,
-            context_size=1,
-            **kwargs)
-
-        return datamodule
-
-    def model_setup(self, num_features: int, num_targets: int):
-        """Create a model as subclass of hackathon.base_model.BaseModel.
-
-        Parameters
-        ----------
-        num_features: The number of features.
-        num_targets: The number of targets.
-
-        Returns
-        -------
-        A model.
-        """
-        model = MultiheadAttn(
-            num_inputs=num_features,
-            num_outputs=num_targets,
-            d_model=4,
-            num_head=4,
-            num_hidden=8,
-            num_layers=2,
-            dropout=0.1,
-            learning_rate=0.001,
-            weight_decay=0.001,
-        )
-
-        return model
-
-    def train(self) -> tuple[pl.Trainer, pl.LightningDataModule, pl.LightningModule]:
-        """Runs training.
-
-        Note:
-        This is just a blueprint, you may implement your own training routine here, e.g.,
-        cross validation. At the end, one single model must be returned.
-
-        Returns
-        -------
-        A trained model.
-        """
-
-        models = []
-        for fold in range(1):
-            version = f'fold_{fold:02d}'
-
-            datamodule = self.data_setup(
-                fold=fold,
-                batch_size=10,
-                num_workers=10
-            )
-
-            model = self.model_setup(
-                num_features=datamodule.num_features,
-                num_targets=datamodule.num_targets
-            )
-
-            trainer = self.trainer_setup(version=version, max_epochs=1)
-
-            # Fit model with training data (and valid data for early stopping.)
-            trainer.fit(model, datamodule=datamodule)
-
-            # Load best model.
-            self.load_best_model(trainer=trainer, model=model)
-
-            # Final predictions on the test set.
-            self.predict(model=model, trainer=trainer, datamodule=datamodule, version=version)
-
-            models.append(model)
-
-        ensemble = Ensemble(models)
-
-        return trainer, datamodule, ensemble
-
-    @staticmethod
-    def get_loc_split(fold: int) -> tuple[list[int], list[int]]:
-        """Split clusters of sites into training and validation set.
-
-        Uses all combinations of 4 from one cluster plus 1 from the other cluster, yielding 50 folds.
-        """
-
-        if (fold < 25) and (fold >= 0):
-            group_1 = [1, 2, 3, 4, 5]
-            group_2 = [6, 7, 8, 9, 10]
-            gfold = fold
-        elif fold < 50:
-            group_2 = [1, 2, 3, 4, 5]
-            group_1 = [6, 7, 8, 9, 10]
-            gfold = fold - 25
-        else:
-            raise ValueError(
-                f'argument `fold` cannot be >= 50, is {fold}.'
-            )
-
-        g1_v = group_1.pop(gfold // 5)
-        g2_t = group_2.pop(gfold % 5)
-
-        group_1.append(g2_t)
-        group_2.append(g1_v)
-
-        return group_1, group_2
+    return model

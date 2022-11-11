@@ -3,9 +3,12 @@
 Author: bkraft@bgc-jena.mpg.de
 """
 
+from abc import abstractmethod
 import itertools as it
 from typing import Any, Optional
 
+import torch
+from torch import Tensor
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -25,9 +28,6 @@ class TSData(Dataset):
             targets: list[str],
             ts_window_size: int = -1,
             ts_context_size: int = 1,
-            normalize: bool = True,
-            norm_kind: str = 'mean_std',
-            norm_stats: Optional[dict[str, xr.Dataset]] = None,
             dtype: str = 'float32'):
 
         """Time series dataset.
@@ -73,13 +73,8 @@ class TSData(Dataset):
         ts_context_size: int (default is 1)
             The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary
             depending on the number of days in the sequence (leap years).
-        normalize: bool (default is `True`)
-            Whether to normalize the features or not. Targets are NOT normalized.
-        norm_kind: str (default is `mean_std`)
-            Kind of normalization technique: 'mean_std' or 'min_max'.
-        norm_stats: dict[str, xr.Dataset],
-            Normalization stats of format {'mean': xr.Dataset, 'std': xr.Dataset}. If not passed, the stats will
-            be inferred from the input datasets 'ds'.
+        dtype: str (default is 'float32')
+            The numeric data type to return.
         """
         super(TSData, self).__init__()
 
@@ -89,19 +84,8 @@ class TSData(Dataset):
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
         self.dtype = dtype
-        self.do_normalize = normalize
-        self.norm_kind = norm_kind
 
         self._check_args()
-
-        if not norm_stats:
-            self.norm_stats = self.get_norm_stats(
-                ds=self.ds,
-                features=self.features,
-                targets=self.targets,
-                norm_kind=self.norm_kind)
-        else:
-            self.norm_stats = norm_stats
 
         time_coords = TSData._get_time_slices(
             ds=self.ds,
@@ -132,8 +116,7 @@ class TSData(Dataset):
 
         Returns
         -------
-        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the
-        coordinates for result assignment.
+        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the coordinates for result assignment.
         """
 
         time_coord, location_coord = self.sample_coords[idx]
@@ -142,10 +125,6 @@ class TSData(Dataset):
 
         ds_f = ds[self.features].sel(time=slice(time_coord['warmup_start'], time_coord['pred_end']))
         ds_t = ds[self.targets].sel(time=slice(time_coord['warmup_start'], time_coord['pred_end']))
-
-        if self.do_normalize:
-            ds_f = self.normalize(ds_f, keys=self.features)
-            # ds_t = self.normalize(ds_t, keys=self.targets)
 
         data_sel = {
             'loc': location_coord,
@@ -157,75 +136,6 @@ class TSData(Dataset):
             'y': self._to_numpy(ds_t),
             'data_sel': data_sel
         }
-
-    def normalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
-
-        if self.norm_kind == 'min_max':
-            spread = (self.norm_stats['max'][keys] - self.norm_stats['min'][keys])
-            return (ds[keys] - self.norm_stats['min'][keys]) / spread
-
-        elif self.norm_kind == 'mean_std':
-            return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
-        else:
-            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
-
-    def denormalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
-
-        if self.norm_kind == 'min_max':
-            spread = self.norm_stats['max'][keys] - self.norm_stats['min'][keys]
-            return ds[keys] * spread + self.norm_stats['min'][keys]
-
-        elif self.norm_kind == 'mean_std':
-            return ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
-        else:
-            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
-
-    def norm_np(self, x: ArrayLike, key: str):
-        """Normalize a numpy array.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            The numpy array, should only contain one variable (`key`).
-        key: str
-            The name of the variable (must be present in `norm_stats`).
-
-        Returns
-        -------
-        The denormalized numpy array.
-        """
-        if self.norm_kind == 'min_max':
-            spread = self.norm_stats['max'][key].item() - self.norm_stats['min'][key].item()
-            return (x - self.norm_stats['min'][key].item()) / spread
-
-        elif self.norm_kind == 'mean_std':
-            return (x - self.norm_stats['mean'][key].item()) / self.norm_stats['std'][key].item()
-        else:
-            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
-
-    def denorm_np(self, x: ArrayLike, key: str):
-        """Denormalize a numpy array.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            The numpy array, should only contain one variable (`key`).
-        key: str
-            The name of the variable (must be present in `norm_stats`).
-
-        Returns
-        -------
-        The denormalized numpy array.
-        """
-
-        if self.norm_kind == 'min_max':
-            return x * (self.norm_stats['max'][key].item()
-                        - self.norm_stats['min'][key].item()) + self.norm_stats['min'][key].item()
-
-        elif self.norm_kind == 'mean_std':
-            return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
-        else:
-            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
 
     def assign_predictions(self, pred: Tensor, data_sel: dict[str, Any]) -> None:
         """Assign predictions to the dataset (`self.ds`), handles denormalization.
@@ -262,33 +172,19 @@ class TSData(Dataset):
 
             for target_i, target in enumerate(self.targets):
                 p = pred[b, -data_sel['pred_len'][b]:, target_i]
-                # if self.do_normalize:
-                #    p = self.denorm_np(p, target)
+
                 self.ds[target + '_hat'].loc[sel_assign] = p
 
-    @classmethod
+    @abstractmethod
     def get_norm_stats(
-            cls,
             ds: xr.Dataset,
             features: list[str],
-            targets: list[str],
-            norm_kind: str = 'mean_std') -> dict[str, xr.Dataset]:
+            dtype: str = 'float32') -> dict[str, Tensor]:
 
-        if norm_kind == 'min_max':
-            norm_stats = {
-                'min': ds[features + targets].min().compute(),
-                'max': ds[features + targets].max().compute(),
-            }
-
-        elif norm_kind == 'mean_std':
-            norm_stats = {
-                'mean': ds[features + targets].mean().compute(),
-                'std': ds[features + targets].std().compute(),
-            }
-        else:
-            raise ValueError(
-                f'`norm_kind` must be one of (\'mean_std\' | \'min_max\'), is {norm_kind}.'
-            )
+        norm_stats = {
+            'mean': torch.as_tensor(ds[features].mean().to_array().values.astype(dtype)),
+            'std': torch.as_tensor(ds[features].std().to_array().values.astype(dtype)),
+        }
 
         return norm_stats
 
@@ -415,6 +311,7 @@ class DataModule(pl.LightningDataModule):
                  window_size: int = 10,
                  context_size: int = 1,
                  load_data: bool = True,
+                 dtype: str = 'float32',
                  **dataloader_kwargs) -> None:
         """Initialize lightning data module.
 
@@ -454,6 +351,8 @@ class DataModule(pl.LightningDataModule):
             context. Is the same for training, validation, and test set.
         load_data: bool (default is `True`)
             If 'True', data is loaded into memory.
+        dtype: str (default is 'float32')
+            The numeric data type to return.
         dataloader_kwargs:
             Keyword arguments passed to 'DataLoader' (e.g., batch_size) for all the sets. Note that
             the argument `shuffle` is already handled (`True` for training, `False` else).
@@ -473,6 +372,8 @@ class DataModule(pl.LightningDataModule):
         self.window_size = window_size
         self.context_size = context_size
 
+        self.dtype = dtype
+
         self.dataloader_kwargs = dataloader_kwargs
 
         # Create empty target variables with naming `<target>_hat`.
@@ -485,8 +386,7 @@ class DataModule(pl.LightningDataModule):
         self.norm_stats = TSData.get_norm_stats(
             ds=training_set,
             features=self.features,
-            targets=self.targets,
-            norm_kind='mean_std')
+            dtype=self.dtype)
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
@@ -517,7 +417,7 @@ class DataModule(pl.LightningDataModule):
             targets=self.targets,
             ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
-            norm_stats=self.norm_stats
+            dtype=self.dtype,
         )
         return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
 
