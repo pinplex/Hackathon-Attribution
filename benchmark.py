@@ -5,23 +5,24 @@ from argparse import ArgumentParser, Namespace
 
 from hackathon.model_runner import ModelRunner
 
-from hackathon.models.transformer import model_setup as attn_model
+from hackathon.models.attn import model_setup as attn_model
 from hackathon.models.linear import model_setup as linear_model
 
-model_funs = [linear_model]
+model_funs = [attn_model]
 
 def main(args: Namespace):
     for model_fn in model_funs:
         
         model_name = model_fn.__module__.split('.')[-1]
-        log_dir = f'./hackathon/logs/{model_name}'
+        log_dir = f'./hackathon/logs/{model_name}/xval'
         if os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
 
         # Training.
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
-        trainer, model = runner.train(
+        trainer, model, _ = runner.train(
             model_fn=model_fn,
+            patience=5,
             max_epochs=1 if args.quickrun else -1,
             accelerator=None if args.gpu == -1 else 'gpu',
             devices=None if args.gpu == -1 else f'{args.gpu},')
