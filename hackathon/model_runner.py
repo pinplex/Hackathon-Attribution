@@ -149,7 +149,7 @@ class ModelRunner(object):
     def trainer_setup(
             self,
             version: str,
-            patience: int = 15,
+            patience: int = 50,
             max_epochs: int = -1,
             **kwargs) -> pl.Trainer:
         """Trainer setup.
