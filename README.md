@@ -37,7 +37,7 @@ This repository contains code and data for the attribution hackathon.
     ```
     class MyModel(BaseModel):
         def __init__(self, num_features: int, num_targets: int, **kwargs) -> None:
-            super(Linear, self).__init__(**kwargs)
+            super(MyModel, self).__init__(**kwargs)
 
             self.linear = torch.nn.Linear(num_features, num_targets)
             self.softplus = torch.nn.Softplus()
