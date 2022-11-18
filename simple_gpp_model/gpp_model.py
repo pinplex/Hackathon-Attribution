@@ -192,7 +192,7 @@ if __name__ == "__main__":
     plt.show()
     
     #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
-    plt.show()
+    #plt.show()
     
     #%% disguise variables
     vrs = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'sfcWind']
