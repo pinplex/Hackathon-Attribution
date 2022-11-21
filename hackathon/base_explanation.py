@@ -23,6 +23,8 @@ class Explainer(object):
         - num_batch x 1461 x num_time x num_features in total.
     > The sensitivitiy tensor can be assigned to an xr.Dataset by using the
         `test_dataloader.dataset.assign_sensitivities(sensitivities=..., data_sel=batch['data_sel'])` method.
+    > After having assigned all sensitivities, the xarray.Dataset with the stored valeus is accessible via
+        `test_dataloader.dataset.sensitivities`.
     > Don't call `_custom_explanations`, use `get_explanations` instead.
 
     """
