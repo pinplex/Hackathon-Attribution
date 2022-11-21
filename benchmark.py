@@ -6,12 +6,14 @@ from argparse import ArgumentParser, Namespace
 from hackathon.model_runner import ModelRunner
 
 from hackathon.models.attn import model_setup as attn_model
-from hackathon.models.transformer import model_setup as attn_model
-from hackathon.models.simplemlp import model_setup as simplemlp
+from hackathon.models.Conv1D import model_setup as conv1d
 from hackathon.models.linear import model_setup as linear_model
+from hackathon.models.LSTM import model_setup as lstm
 from hackathon.models.multimodel import model_setup as efficiency_model
+from hackathon.models.resnet import model_setup as resnet
+from hackathon.models.simplemlp import model_setup as simplemlp
 
-model_funs = [efficiency_model, simplemlp, attn_model]
+model_funs = [attn_model, conv1d, linear_model, lstm, efficiency_model, resnet, simplemlp]
 
 def main(args: Namespace):
     for model_fn in model_funs:
@@ -32,7 +34,6 @@ def main(args: Namespace):
 
         # Evaluating.
         datamodule = runner.data_setup(fold=-1)
-        #from IPython import embed; embed()
         runner.predict(
             trainer=trainer,
             model=model,
