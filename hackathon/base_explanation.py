@@ -12,9 +12,8 @@ class Explainer(object):
 
     Usage
     -----
-    > Subclass this and at least override the `Explainer._custom_explanations` method.
-    > Explainer.get_explanations must exactly follow the signature defined here (see 'Parameters' 
-        and 'Returns'.)
+    > Subclass this and at least override the `Explainer._custom_explanations` method. You must exactly
+      follow the signature defined here (see 'Parameters' and 'Returns'.)
     > You may first calculate the full sensitivities and derive the other return items from that.
         For sensitivities, we speak about sensitivity of a target *towards* a feature. We store the
         sensitivity of the last four years of the test data towards all time steps of the features.
