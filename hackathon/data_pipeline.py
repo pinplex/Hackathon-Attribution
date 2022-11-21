@@ -250,7 +250,9 @@ class TSData(Dataset):
         sensitivities = self._check_sensitivities(sensitivities, data_sel)
 
         for target_i, target in enumerate(self.targets):
-            sens = sensitivities[target_i].detach().cpu()
+            sens = sensitivities[target_i]
+            if isinstance(sens, Tensor):
+                sens = sens.detach().cpu()
 
             for b in range(sens.shape[0]):
 
@@ -266,17 +268,15 @@ class TSData(Dataset):
 
 
     def _check_sensitivities(self, sensitivities: Tensor, data_sel: dict[str, Any]) -> list[Tensor]:
-        if isinstance(sensitivities, Tensor):
+        if not isinstance(sensitivities, list):
             sensitivities = [sensitivities]
-        elif isinstance(sensitivities, list):
-            pass
         else:
             raise TypeError(
                 f'`sensitivities` must be a Tensor or a list of Tensors, is `{type(sensitivities).__name__}`.'
             )
 
         for sens_i, sens in enumerate(sensitivities):
-            if not isinstance(sens, Tensor):
+            if not (isinstance(sens, Tensor) or isinstance(sens, np.ndarray)):
                 raise TypeError(
                     f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
                 )
