@@ -28,6 +28,7 @@ class TSData(Dataset):
             targets: list[str],
             ts_window_size: int = -1,
             ts_context_size: int = 1,
+            add_sensitifivy_ds: bool = False,
             dtype: str = 'float32'):
 
         """Time series dataset.
@@ -71,8 +72,9 @@ class TSData(Dataset):
             The sequence window size in YEARS that defines the sequence lengths of a sample.
             With '-1', the full sequence is returned. The value must be >0 or -1.
         ts_context_size: int (default is 1)
-            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary
-            depending on the number of days in the sequence (leap years).
+            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary depending on the number of days in the sequence (leap years).
+        add_sensitifivy_ds: bool (default is `False`)
+            If `True`, an empty dataset is added to later store the sensivivities.
         dtype: str (default is 'float32')
             The numeric data type to return.
         """
@@ -83,7 +85,27 @@ class TSData(Dataset):
         self.targets = [targets] if isinstance(targets, str) else targets
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
+        self.add_sensitifivy_ds = add_sensitifivy_ds
         self.dtype = dtype
+
+        # Create empty sensitivity dataset
+        if self.add_sensitifivy_ds:
+            test_ds = self.ds.sel(**self.test_subset)
+            test_years = np.unique(test_ds.time.dt.year)
+            if len(test_years) < 4:
+                raise ValueError(
+                    'test dataset too short to calculate sensitivities (minimum 4 years).'
+                )
+            time_slice = slice(str(test_years[-4]), str(test_years[-1]))
+            dummy_ds = xr.DataArray(
+                dims=('time', 'time_ref'),
+                coords=(test_ds.sel(time=time_slice).time.values, test_ds.time.values)
+            )
+            self.sensitivities = xr.Dataset()
+            for var in set(self.ds.data_vars) - set(self.targets):
+                self.sensitivities[var] = dummy_ds.copy()
+        else:
+            self.sensitivities = None
 
         self._check_args()
 
@@ -421,20 +443,37 @@ class DataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
-        return self._create_dataloader(self.train_subset, shuffle=True, return_full_seq=False)
+        return self._create_dataloader(
+            self.train_subset,
+            shuffle=True,
+            return_full_seq=False,
+            add_sensitifivy_ds=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
-        return self._create_dataloader(self.valid_subset, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(
+            self.valid_subset,
+            shuffle=False,
+            return_full_seq=True,
+            add_sensitifivy_ds=True)
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
-        return self._create_dataloader(self.test_subset, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(
+            self.test_subset,
+            shuffle=False,
+            return_full_seq=True,
+            add_sensitifivy_ds=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
 
-    def _create_dataloader(self, ds_selector: dict[str, Any], shuffle: bool, return_full_seq: bool) -> DataLoader:
+    def _create_dataloader(
+            self,
+            ds_selector: dict[str, Any],
+            shuffle: bool,
+            return_full_seq: bool,
+            add_sensitifivy_ds: bool) -> DataLoader:
         self._assert_norm_stats()
         ds = self.ds.sel(**ds_selector)
 
@@ -447,6 +486,7 @@ class DataModule(pl.LightningDataModule):
             targets=self.targets,
             ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
+            add_sensitifivy_ds=add_sensitifivy_ds,
             dtype=self.dtype,
         )
         return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
