@@ -329,17 +329,19 @@ class TSData(Dataset):
 class DataModule(pl.LightningDataModule):
     """Defines a lightning data module."""
 
-    def __init__(self, data_path: str,
-                 features: list[str],
-                 targets: list[str],
-                 train_subset: dict[str, Any],
-                 valid_subset: dict[str, Any],
-                 test_subset: Optional[dict[str, Any]] = None,
-                 window_size: int = 10,
-                 context_size: int = 1,
-                 load_data: bool = True,
-                 dtype: str = 'float32',
-                 **dataloader_kwargs) -> None:
+    def __init__(
+            self,
+            data_path: str,
+            features: list[str],
+            targets: list[str],
+            train_subset: dict[str, Any],
+            valid_subset: dict[str, Any],
+            test_subset: Optional[dict[str, Any]] = None,
+            window_size: int = 10,
+            context_size: int = 1,
+            load_data: bool = True,
+            dtype: str = 'float32',
+            **dataloader_kwargs) -> None:
         """Initialize lightning data module.
 
         Return shapes
