@@ -85,7 +85,7 @@ class Explainer(object):
         - Dummy variable probability: a tuple containing the probability of each of the input
           features to be the dummy variable (which has no impact on the predictions).
         - The GPP sensitivity towards CO2, a single float.
-        - The sensitivities of GPP towards all variables, an xarray.Dataset. See 'Notes' for more details.
+        - The sensitivities of GPP towards all variables, an xarray.Dataset. See 'Usage' for more details.
 
         """
 
