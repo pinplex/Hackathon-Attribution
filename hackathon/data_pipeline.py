@@ -17,6 +17,8 @@ from numpy.typing import ArrayLike
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 
+from typing import Union
+
 
 class TSData(Dataset):
     """Defines a dataset."""
@@ -90,20 +92,23 @@ class TSData(Dataset):
 
         # Create empty sensitivity dataset
         if self.add_sensitifivy_ds:
-            test_ds = self.ds.sel(**self.test_subset)
-            test_years = np.unique(test_ds.time.dt.year)
+            test_years = np.unique(self.ds.time.dt.year)
             if len(test_years) < 4:
                 raise ValueError(
                     'test dataset too short to calculate sensitivities (minimum 4 years).'
                 )
             time_slice = slice(str(test_years[-4]), str(test_years[-1]))
-            dummy_ds = xr.DataArray(
+            dummy_arr = xr.DataArray(
                 dims=('time', 'time_ref'),
-                coords=(test_ds.sel(time=time_slice).time.values, test_ds.time.values)
-            )
+                coords=(self.ds.sel(time=time_slice).time.values, self.ds.time.values)
+            ).expand_dims(
+                location=self.ds.location.values, axis=-1
+            ).expand_dims(
+                var=self.features, axis=-1
+            ).astype('float32')
             self.sensitivities = xr.Dataset()
-            for var in set(self.ds.data_vars) - set(self.targets):
-                self.sensitivities[var] = dummy_ds.copy()
+            for target in self.targets:
+                self.sensitivities[target + '_sens'] = dummy_arr.copy()
         else:
             self.sensitivities = None
 
@@ -224,7 +229,83 @@ class TSData(Dataset):
                 f'predictions must have 3 or 4 dimensions, is {pred.ndim}.'
             )
 
-    @abstractmethod
+    def assign_sensitivities(
+            self,
+            sensitivities: Union[Tensor, list[Tensor]],
+            data_sel: dict[str, Any]) -> None:
+        """Assign predictions to the dataset (`self.ds`), handles denormalization.
+
+        Parameters
+        ----------
+        sensitivities: Tensor or list[Tensor]
+            If a Tensor is passed, num_targets must be 1. Else, list elements correspond to targets.
+            Each list element has shape
+                - (batch_size, *1461, seq_len, num_features)
+        data_sel: dict[str, Any]
+            The dictionary which is returned by the dataloader, containing location and time
+            slices to assign the predictions to the right coordinates.
+
+        """
+
+        sensitivities = self._check_sensitivities(sensitivities, data_sel)
+
+        for target_i, target in enumerate(self.targets):
+            sens = sensitivities[target_i].detach().cpu()
+
+            for b in range(sens.shape[0]):
+
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                }
+
+                for target_i, target in enumerate(self.targets):
+                    
+                    p = sens[b, :, :]
+
+                    self.sensitivities[target + '_sens'].loc[{**sel_assign}] = p
+
+
+    def _check_sensitivities(self, sensitivities: Tensor, data_sel: dict[str, Any]) -> list[Tensor]:
+        if isinstance(sensitivities, Tensor):
+            sensitivities = [sensitivities]
+        elif isinstance(sensitivities, list):
+            pass
+        else:
+            raise TypeError(
+                f'`sensitivities` must be a Tensor or a list of Tensors, is `{type(sensitivities).__name__}`.'
+            )
+
+        for sens_i, sens in enumerate(sensitivities):
+            if not isinstance(sens, Tensor):
+                raise TypeError(
+                    f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
+                )
+            _, num_time, num_ref_time, num_vars =  sens.shape
+            if not num_time == 1461:
+                raise ValueError(
+                    f'The sensitivities second dimension must have a length of 1461, is {num_time}.'
+                )
+            if num_time > num_ref_time:
+                raise ValueError(
+                    'the second dimension (time) is larger than the third dimension (ref_time). Did you mix up '
+                    'the dimensions? Hint: the target\'s second variable time t`s sensitivity towards feature at '
+                    'time in time_ref.'
+                )
+            if num_vars != self.num_features:
+                raise ValueError(
+                    'the last dimension of `sensitivities` must be equal to the number of features.'
+                )
+
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != sens.shape[0] for key in time_sel_keys)):
+                raise ValueError(
+                    f'first dimension size of argument `sensitivities[{sens_i}]` must be equal to the length '
+                    'of each values in `data_sel`.'
+                )
+
+        return sensitivities
+
+    @staticmethod
     def get_norm_stats(
             ds: xr.Dataset,
             features: list[str],
