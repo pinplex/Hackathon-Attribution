@@ -76,10 +76,11 @@ class ModelRunner(object):
     """ModelRunner implements the training scheme.
     """
     def __init__(
-        self,
-        log_dir: str,
-        quickrun: bool = False,
-        seed: Optional[int] = None) -> None:
+            self,
+            log_dir: str,
+            quickrun: bool = False,
+            seed: Optional[int] = None,
+            data_dir: str = './simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc') -> None:
         """Initialize BaseRunner.
 
         Parameters
@@ -93,6 +94,7 @@ class ModelRunner(object):
         os.makedirs(self.log_dir, exist_ok=True)
 
         self.quickrun = quickrun
+        self.data_dir = data_dir
 
         pl.seed_everything(seed)
 
@@ -133,7 +135,7 @@ class ModelRunner(object):
 
         datamodule = DataModule(
             # You may keep these:
-            data_path='./simple_gpp_model/data/CMIP6/predictor-variables_historical+GPP.nc',
+            data_path=self.data_dir,
             features=[f'var{i}' for i in range(1, 8)] + ['co2'],
             targets=['GPP'],
             # You may change these:
