@@ -7,7 +7,7 @@ import numpy as np
 from hackathon.base_model import BaseModel
 from hackathon.data_pipeline import TSData
 
-class Explainer(object):
+class BaseExplainer(object):
     """Base explanation class, meant to be subclassed.
 
     Usage
