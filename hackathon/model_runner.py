@@ -64,13 +64,6 @@ class Ensemble(pl.LightningModule):
 
         dataset.assign_predictions(pred=y_hat_q, data_sel=batch['data_sel'])
 
-    @staticmethod
-    def mean_agg(x: Tensor) -> Tensor:
-        return torch.mean(x, dim=0)
-
-    @staticmethod
-    def median_agg(x: Tensor) -> Tensor:
-        return torch.median(x, dim=0)
 
 class ModelRunner(object):
     """ModelRunner implements the training scheme.
