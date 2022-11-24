@@ -91,7 +91,7 @@ class MultiheadAttn(BaseModel):
 
         super().__init__(**kwargs)
 
-        self.model_type = 'Transformer'
+        self.model_type = 'MultiheadAtttention'
 
         self.input_encoder = nn.Linear(in_features=num_inputs, out_features=d_model)
 
