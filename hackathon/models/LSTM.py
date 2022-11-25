@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 
-from base_model import BaseModel
+from hackathon.base_model import BaseModel
 
 
 class LSTM(BaseModel):
