@@ -1,5 +1,6 @@
 
 from argparse import ArgumentParser, Namespace
+import torch
 
 from hackathon.model_runner import ModelRunner
 from hackathon.explainers.test_explainer import TestExplainer
@@ -32,7 +33,8 @@ def main(args: Namespace):
         checkpoint_path = f'./hackathon/logs/{model_name}/xval/final/final.ckpt'
 
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
-        model.load_from_checkpoint(checkpoint_path)
+        #model.load_from_checkpoint(checkpoint_path)
+        model = torch.load(checkpoint_path)
         test_dataloader = runner.data_setup(fold=-1).test_dataloader()
 
         explanations = explainer.get_explanations(model, test_dataloader)
