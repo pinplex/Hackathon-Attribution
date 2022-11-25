@@ -3,7 +3,7 @@ from torch import nn, Tensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import math
 
-from typing import Iterable, Any
+from typing import Iterable, Any, Optional
 
 from hackathon import BaseModel
 
@@ -60,6 +60,7 @@ class MultiheadAttn(BaseModel):
             num_hidden: int,
             num_layers: int,
             dropout: float = 0.1,
+            max_temp_context: int = 365,
             **kwargs):
         """Implements a multihead self-attention model.
 
@@ -85,6 +86,8 @@ class MultiheadAttn(BaseModel):
                 The number of hidden fully-connected layers.
             dropout (float):
                 The dropout applied after each layer, in range [0, 1).
+            max_temp_context (int):
+                The maximum length of attention, default is 365.
             **kwargs:
                 Keyword arguments passed to BaseModel (parent class).
         """
@@ -112,6 +115,8 @@ class MultiheadAttn(BaseModel):
 
         self.activation_out = nn.Softplus()
 
+        self.max_temp_context = max_temp_context
+
         # self.attn_scores = {}
         # for i, layer in enumerate(self.transformer_encoder.layers):
         #     layer.self_attn.register_forward_hook(self.get_activation(f'attn_layer_{i:02d}'))
@@ -129,10 +134,10 @@ class MultiheadAttn(BaseModel):
         """
         Args:
             src: Tensor, shape [seq_len, batch_size]
-            src_mask: Tensor, shape [seq_len / 24, seq_len / 24]
+            src_mask: Tensor, shape [seq_len, seq_len]
 
         Returns:
-            output Tensor of shape [seq_len, batch_size, ntoken]
+            output Tensor of shape [seq_len, batch_size, num_targets]
         """
 
         # [B, S, I] -> [B, S, D]
@@ -145,7 +150,7 @@ class MultiheadAttn(BaseModel):
         src_enc = self.to_sequence_first(src_enc)
 
         # [S, S]
-        src_mask = self.generate_square_subsequent_mask(sz=src_enc.shape[0])
+        src_mask = self.generate_square_subsequent_mask(sz=src_enc.shape[0], max_len=self.max_temp_context)
 
         # [S, B, D] -> [S, B, D]
         out = self.transformer_encoder(src_enc, src_mask)
@@ -162,9 +167,14 @@ class MultiheadAttn(BaseModel):
 
         return out
 
-    def generate_square_subsequent_mask(self, sz: int) -> Tensor:
+    def generate_square_subsequent_mask(self, sz: int, max_len: Optional[int] = None) -> Tensor:
         """Generates an upper-triangular matrix of -inf, with zeros on diag."""
-        return torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
+        mask = torch.triu(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=1)
+
+        if max_len:
+            mask += torch.tril(torch.ones(sz, sz, device=self.device) * float('-inf'), diagonal=-max_len)
+
+        return mask
 
 
 def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
@@ -176,11 +186,11 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
     """
 
     default_params = dict(
-        d_model=16,
-        num_head=2,
+        d_model=8,
+        num_head=1,
         num_hidden=64,
-        num_layers=3,
-        dropout=0.3,
+        num_layers=1,
+        dropout=0.15,
         learning_rate=0.001,
         weight_decay=0.01,
     )
