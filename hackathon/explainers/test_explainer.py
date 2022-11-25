@@ -15,9 +15,11 @@ class TestExplainer(BaseExplainer):
             test_dataloader: DataLoader) -> tuple[tuple[float], float, xr.Dataset]:
 
         for batch in test_dataloader:
-            y_hat, loss = model.common_step(batch)
-            print(loss)
+            y_hat = model(batch)
+            print(y_hat.shape)
             # test_dataloader.dataset.assign_sensitivities(
             #     sensitivities=...,
             #     data_sel=batch['data_sel']
             # )
+
+
