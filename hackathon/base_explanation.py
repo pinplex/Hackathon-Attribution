@@ -7,6 +7,7 @@ import numpy as np
 from hackathon.base_model import BaseModel
 from hackathon.data_pipeline import TSData
 
+
 class BaseExplainer(object):
     """Base explanation class, meant to be subclassed.
 
@@ -21,9 +22,9 @@ class BaseExplainer(object):
         calculate the sensitivity towards each time step. This yields a sensitivity tensor of
         - 1461 x num_time x num_features for each batch element, or
         - num_batch x 1461 x num_time x num_features in total.
-    > The sensitivitiy tensor can be assigned to an xr.Dataset by using the
+    > The sensitivity tensor can be assigned to a xr.Dataset by using the
         `test_dataloader.dataset.assign_sensitivities(sensitivities=..., data_sel=batch['data_sel'])` method.
-    > After having assigned all sensitivities, the xarray.Dataset with the stored valeus is accessible via
+    > After having assigned all sensitivities, the xarray.Dataset with the stored values is accessible via
         `test_dataloader.dataset.sensitivities`.
     > Don't call `_custom_explanations`, use `get_explanations` instead.
 
@@ -47,7 +48,7 @@ class BaseExplainer(object):
         - Dummy variable probability: a tuple containing the probability of each of the input
           features to be the dummy variable (which has no impact on the predictions).
         - The GPP sensitivity towards CO2, a single float.
-        - The sensitivities of GPP towards all variables, an xarray.Dataset. See 'Notes' for more details.
+        - The sensitivities of GPP towards all variables, a xarray.Dataset. See 'Notes' for more details.
         """
 
         ds: TSData = test_dataloader.dataset
@@ -85,7 +86,7 @@ class BaseExplainer(object):
         - Dummy variable probability: an array or tuple containing the probability of each of the input
           features to be the dummy variable (which has no impact on the predictions).
         - The GPP sensitivity towards CO2, a single float.
-        - The sensitivities of GPP towards all variables, an xarray.Dataset. See 'Usage' for more details.
+        - The sensitivities of GPP towards all variables, a xarray.Dataset. See 'Usage' for more details.
 
         """
 
