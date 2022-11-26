@@ -115,24 +115,27 @@ class ModelRunner(object):
         A datamodule of type pl.LightningDataModule.
         """
 
+        train_time = slice('1850', '1855') if self.quickrun else slice('1850', '2004')
+        valid_time = slice('2005', '2010') if self.quickrun else slice('2005', '2014')
+
         if fold == -1:
             train_sel = {
                 'location': [1],
-                'time': slice('1850', '2004')
+                'time': train_time
             }
             valid_sel = {
-                'location': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                'time': slice('2005', '2014')
+                'location': [1] if self.quickrun else [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                'time': valid_time
             }
         else:
             train_locs, valid_locs = self.get_cv_loc_split(fold)
             train_sel = {
                 'location': [fold + 1] if self.quickrun else train_locs,
-                'time': slice('1850', '1855') if self.quickrun else slice('1850', '2004')
+                'time': train_time
             }
             valid_sel = {
-                'location': [2 - fold] if self.quickrun else valid_locs,
-                'time': slice('2005', '2010') if self.quickrun else slice('2005', '2014')
+                'location': [(fold + 2) % 10] if self.quickrun else valid_locs,
+                'time': valid_time
             }
 
         datamodule = DataModule(
