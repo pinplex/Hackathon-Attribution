@@ -3,7 +3,6 @@
 Author: bkraft@bgc-jena.mpg.de
 """
 
-from abc import abstractmethod
 import itertools as it
 from typing import Any, Optional
 
@@ -99,7 +98,7 @@ class TSData(Dataset):
                 )
             time_slice = slice(str(test_years[-4]), str(test_years[-1]))
             dummy_arr = xr.DataArray(
-                dims=('time', 'time_ref'),
+                dims=('time', 'context_time'),
                 coords=(self.ds.sel(time=time_slice).time.values, self.ds.time.values)
             ).expand_dims(
                 location=self.ds.location.values, axis=-1
@@ -121,6 +120,11 @@ class TSData(Dataset):
         location_coords = self.ds.location.values
 
         self.sample_coords = list(it.product(time_coords, location_coords))
+
+    def reset_sensitivity_ds(self) -> None:
+        """Reset sensitivity ds; fill with NaN."""
+        if self.sensitivities is not None:
+            self.sensitivities *= np.nan
 
     def __len__(self) -> int:
         """Returns the number of samples."""
@@ -289,7 +293,7 @@ class TSData(Dataset):
                 raise ValueError(
                     'the second dimension (time) is larger than the third dimension (ref_time). Did you mix up '
                     'the dimensions? Hint: the target\'s second variable time t`s sensitivity towards feature at '
-                    'time in time_ref.'
+                    'time in context_time.'
                 )
             if num_vars != self.num_features:
                 raise ValueError(
