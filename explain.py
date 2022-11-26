@@ -33,6 +33,8 @@ explainers = [
 def main(args: Namespace):
     model: BaseModel
 
+    print('\n+++ Explanations are saved to `./hackathon/logs/<model_name>/expl/<explainer_name>/explanations.nc>`+++\n')
+
     for model in (pbar0 := tqdm(model_funs)):
         model_name = model.__module__.split('.')[-1]
         log_dir = f'./hackathon/logs/{model_name}/expl'
