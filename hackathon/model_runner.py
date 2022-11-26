@@ -40,15 +40,24 @@ class Ensemble(pl.LightningModule):
 
         self.models = torch.nn.ModuleList(models)
 
-    def forward(self, x: Tensor) -> Tensor:
-        """Forward call all ensemble members and reduces the output."""
+    def forward(self, batch: dict[str, Tensor], return_quantiles: bool = True) -> Tensor:
+        """Forward call all ensemble members and reduces the output.
+        
+        batch: a batch containing features and targets.
+        return_quantiles: if `True`, ensemble quantiles (0.1, 0.5, 0.9) are returned,
+            else only the median (0.5 quantile) is returned.
+        """
         y_hats = []
         for module in self.models:
-            y_hat, _ = module.common_step(x)
+            y_hat, _ = module.common_step(batch)
             y_hats.append(y_hat)
 
         y_hats = torch.stack(y_hats, dim=0)
-        y_hats_q = y_hats.quantile(q=torch.tensor([0.1, 0.5, 0.9], device=y_hats.device), dim=0)
+
+        if return_quantiles:
+            y_hats_q = y_hats.quantile(q=torch.tensor([0.1, 0.5, 0.9], device=y_hats.device), dim=0)
+        else:
+            y_hats_q = y_hats.quantile(q=0.5, dim=0)
 
         return y_hats_q
 
@@ -109,7 +118,7 @@ class ModelRunner(object):
         if fold == -1:
             train_sel = {
                 'location': [1],
-                'time': slice('1850', '1855')
+                'time': slice('1850', '2004')
             }
             valid_sel = {
                 'location': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
