@@ -35,7 +35,7 @@ def main(args: Namespace):
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
         trainer, model, _ = runner.train(
             model_fn=model_fn,
-            patience=5,
+            patience=15,
             max_epochs=1 if args.quickrun else -1,
             accelerator=None if args.gpu == -1 else 'gpu',
             devices=None if args.gpu == -1 else f'{args.gpu},')
