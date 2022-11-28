@@ -8,6 +8,7 @@ Source: https://www.ntsg.umt.edu/project/modis/user-guides/mod17c61usersguidev11
 """
 #%%
 ## import modules
+import os
 import pickle
 from random import shuffle
 import numpy as np
@@ -33,16 +34,16 @@ b = 0.383 # Power-Law
 kind = 'CMIP6' # 'CMIP6' or 'OBS'
 
 # for CMIP6
-simulation = 'historical'# 'ssp585'
+simulation = 'historical' # 'ssp585'
 ESM = 'MPI-ESM1-2-LR'
 
 if kind == 'CMIP6':
-    infile = 'data/'+kind+'/predictor-variables_'+simulation+'.nc'
-    outfile = 'data/'+kind+'/predictor-variables_'+simulation+'+'+'GPP.nc'
+    infile = 'data/'+kind+'/predictor-variables_'+simulation
+    outfile = 'data/'+kind+'/predictor-variables_'+simulation+'+'+'GPP'
     
 else:
-    infile = 'data/'+kind+'/predictor-variables.nc'
-    outfile = 'data/'+kind+'/predictor-variables+GPP.nc'
+    infile = 'data/'+kind+'/predictor-variables'
+    outfile = 'data/'+kind+'/predictor-variables+GPP'
     
 #%% MOD17 functions
 #%% VPD scalar
@@ -143,7 +144,7 @@ def calc_GPP(Tmin, VPD, SWRad, FPAR, SWC, CO2):
 if __name__ == "__main__":
 
     #% read data
-    ds = xr.open_dataset(infile)
+    ds = xr.open_dataset(infile+'.nc')
     
     ## make sure time is in first place in the dimension order
     ds = ds.transpose("time", ...)
@@ -176,38 +177,56 @@ if __name__ == "__main__":
     ds['GPP'] = ds['GPP'] + np.abs(np.random.normal(loc=0, scale=0.5, size=ds['GPP'].shape))
 
     #%% make plot
-    variables = ['t2mmin', 'bSWC', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 
-                 'GPP']#, 'bSWC', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
-                 #'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
-    df = ds.sel(time='1970', cluster=2, location=13).to_dataframe().reset_index().set_index('time')
+    # variables = ['t2mmin', 'bSWC', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 
+    #              'GPP']#, 'bSWC', 'GPP_constant-Tmin', 'GPP_constant-SWrad', 'GPP_constant-VPD',
+    #              #'GPP_constant-FPAR', 'GPP_constant-SWC', 'GPP_constant-CO2']
+    # df = ds.isel(time=0, cluster=0, location=0).to_dataframe().reset_index().set_index('time')
 
-    df[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
-    plt.show()
+    # df[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
+    # plt.show()
 
     #%% diff: last 5 year minus first 5 years
-    diff = (ds.sel(time=slice(str(2016-5),str(2016))).groupby('time.dayofyear').mean(dim='time')\
-            - ds.sel(time=slice(str(1982),str(1982+5))).groupby('time.dayofyear').mean(dim='time'))\
-           .sel(location=2).to_dataframe().reset_index()
-    diff[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
-    plt.show()
+    # diff = (ds.sel(time=slice(str(2016-5),str(2016))).groupby('time.dayofyear').mean(dim='time')\
+    #         - ds.sel(time=slice(str(1982),str(1982+5))).groupby('time.dayofyear').mean(dim='time'))\
+    #        .sel(location=2).to_dataframe().reset_index()
+    # diff[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
+    # plt.show()
     
-    #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
-    plt.show()
+    # #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
+    # plt.show()
     
     #%% disguise variables
     vrs = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'sfcWind']
-    shuffle(vrs)
-
-    mapping = {}
-    for i in range(len(vrs)):
-        ds = ds.rename({vrs[i]:'var'+str(i+1)})
-        mapping[vrs[i]] = 'var'+str(i+1)
-        
     ## store mapping
-    with open('variable_mapping.pickle', 'wb') as handle:
-        pickle.dump(mapping, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    if os.path.exists('variable_mapping.pickle'):
+        with open('variable_mapping.pickle', 'rb') as handle:
+            mapping = pickle.load(handle)
+            
+        for var in mapping.keys():
+            ds = ds.rename({var:mapping[var]})
+    
+    else:
+        
+        shuffle(vrs)
+    
+        mapping = {}
+        for i in range(len(vrs)):
+            ds = ds.rename({vrs[i]:'var'+str(i+1)})
+            mapping[vrs[i]] = 'var'+str(i+1)
+        
+        with open('variable_mapping.pickle', 'wb') as handle:
+            pickle.dump(mapping, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     #%%save data to disk
+    #ds = ds.astype('float32')
+    #vrs = ['var'+str(i+1) for i in range(len(vrs))] + ['co2', 'GPP']
+    #ds[vrs].sel(cluster=slice(0,1)).sel(location=slice(1,10)).to_netcdf(outfile+'.nc') # cluster 2 is for testing
+
+    #%% save testing data set
     ds = ds.astype('float32')
     vrs = ['var'+str(i+1) for i in range(len(vrs))] + ['co2', 'GPP']
-    ds[vrs].sel(cluster=slice(0,1)).sel(location=slice(1,10)).to_netcdf(outfile) # cluster 2 is for testing
+    
+    if simulation == 'historical':
+        ds[vrs].sel(location=slice(11,None)).to_netcdf(outfile+'_test.nc')
+    else:
+        ds[vrs].to_netcdf(outfile+'_test.nc') # cluster 2 is for testing
