@@ -6,6 +6,8 @@ Author: bkraft@bgc-jena.mpg.de
 import itertools as it
 from typing import Any, Optional
 
+import torch
+from torch import Tensor
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -13,6 +15,8 @@ import xarray as xr
 from numpy.typing import ArrayLike
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
+
+from typing import Union
 
 
 class TSData(Dataset):
@@ -25,9 +29,7 @@ class TSData(Dataset):
             targets: list[str],
             ts_window_size: int = -1,
             ts_context_size: int = 1,
-            normalize: bool = True,
-            norm_kind: str = 'mean_std',
-            norm_stats: Optional[dict[str, xr.Dataset]] = None,
+            add_sensitifivy_ds: bool = False,
             dtype: str = 'float32'):
 
         """Time series dataset.
@@ -71,15 +73,11 @@ class TSData(Dataset):
             The sequence window size in YEARS that defines the sequence lengths of a sample.
             With '-1', the full sequence is returned. The value must be >0 or -1.
         ts_context_size: int (default is 1)
-            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary
-            depending on the number of days in the sequence (leap years).
-        normalize: bool (default is `True`)
-            Whether to normalize the features or not. Targets are NOT normalized.
-        norm_kind: str (default is `mean_std`)
-            Kind of normalization technique: 'mean_std' or 'min_max'.
-        norm_stats: dict[str, xr.Dataset],
-            Normalization stats of format {'mean': xr.Dataset, 'std': xr.Dataset}. If not passed, the stats will
-            be inferred from the input datasets 'ds'.
+            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary depending on the number of days in the sequence (leap years).
+        add_sensitifivy_ds: bool (default is `False`)
+            If `True`, an empty dataset is added to later store the sensivivities.
+        dtype: str (default is 'float32')
+            The numeric data type to return.
         """
         super(TSData, self).__init__()
 
@@ -88,20 +86,32 @@ class TSData(Dataset):
         self.targets = [targets] if isinstance(targets, str) else targets
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
+        self.add_sensitifivy_ds = add_sensitifivy_ds
         self.dtype = dtype
-        self.do_normalize = normalize
-        self.norm_kind = norm_kind
+
+        # Create empty sensitivity dataset
+        if self.add_sensitifivy_ds:
+            test_years = np.unique(self.ds.time.dt.year)
+            if len(test_years) < 4:
+                raise ValueError(
+                    'test dataset too short to calculate sensitivities (minimum 4 years).'
+                )
+            time_slice = slice(str(test_years[-4]), str(test_years[-1]))
+            dummy_arr = xr.DataArray(
+                dims=('time', 'context_time'),
+                coords=(self.ds.sel(time=time_slice).time.values, self.ds.time.values)
+            ).expand_dims(
+                location=self.ds.location.values, axis=-1
+            ).expand_dims(
+                var=self.features, axis=-1
+            ).astype('float32')
+            self.sensitivities = xr.Dataset()
+            for target in self.targets:
+                self.sensitivities[target + '_sens'] = dummy_arr.copy()
+        else:
+            self.sensitivities = None
 
         self._check_args()
-
-        if not norm_stats:
-            self.norm_stats = self.get_norm_stats(
-                ds=self.ds,
-                features=self.features,
-                targets=self.targets,
-                norm_kind=self.norm_kind)
-        else:
-            self.norm_stats = norm_stats
 
         time_coords = TSData._get_time_slices(
             ds=self.ds,
@@ -110,6 +120,11 @@ class TSData(Dataset):
         location_coords = self.ds.location.values
 
         self.sample_coords = list(it.product(time_coords, location_coords))
+
+    def reset_sensitivity_ds(self) -> None:
+        """Reset sensitivity ds; fill with NaN."""
+        if self.sensitivities is not None:
+            self.sensitivities *= np.nan
 
     def __len__(self) -> int:
         """Returns the number of samples."""
@@ -132,8 +147,7 @@ class TSData(Dataset):
 
         Returns
         -------
-        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the
-        coordinates for result assignment.
+        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the coordinates for result assignment.
         """
 
         time_coord, location_coord = self.sample_coords[idx]
@@ -142,10 +156,6 @@ class TSData(Dataset):
 
         ds_f = ds[self.features].sel(time=slice(time_coord['warmup_start'], time_coord['pred_end']))
         ds_t = ds[self.targets].sel(time=slice(time_coord['warmup_start'], time_coord['pred_end']))
-
-        if self.do_normalize:
-            ds_f = self.normalize(ds_f, keys=self.features)
-            # ds_t = self.normalize(ds_t, keys=self.targets)
 
         data_sel = {
             'loc': location_coord,
@@ -158,137 +168,157 @@ class TSData(Dataset):
             'data_sel': data_sel
         }
 
-    def normalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
-
-        if self.norm_kind == 'min_max':
-            spread = (self.norm_stats['max'][keys] - self.norm_stats['min'][keys])
-            return (ds[keys] - self.norm_stats['min'][keys]) / spread
-
-        elif self.norm_kind == 'mean_std':
-            return (ds[keys] - self.norm_stats['mean'][keys]) / self.norm_stats['std'][keys]
-        else:
-            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
-
-    def denormalize(self, ds: xr.Dataset, keys: list[str]) -> xr.Dataset:
-
-        if self.norm_kind == 'min_max':
-            spread = self.norm_stats['max'][keys] - self.norm_stats['min'][keys]
-            return ds[keys] * spread + self.norm_stats['min'][keys]
-
-        elif self.norm_kind == 'mean_std':
-            return ds[keys] * self.norm_stats['std'][keys] / self.norm_stats['mean'][keys]
-        else:
-            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
-
-    def norm_np(self, x: ArrayLike, key: str):
-        """Normalize a numpy array.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            The numpy array, should only contain one variable (`key`).
-        key: str
-            The name of the variable (must be present in `norm_stats`).
-
-        Returns
-        -------
-        The denormalized numpy array.
-        """
-        if self.norm_kind == 'min_max':
-            spread = self.norm_stats['max'][key].item() - self.norm_stats['min'][key].item()
-            return (x - self.norm_stats['min'][key].item()) / spread
-
-        elif self.norm_kind == 'mean_std':
-            return (x - self.norm_stats['mean'][key].item()) / self.norm_stats['std'][key].item()
-        else:
-            raise ValueError(f'Norm not implemented for norm-kind {self.norm_kind}.')
-
-    def denorm_np(self, x: ArrayLike, key: str):
-        """Denormalize a numpy array.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            The numpy array, should only contain one variable (`key`).
-        key: str
-            The name of the variable (must be present in `norm_stats`).
-
-        Returns
-        -------
-        The denormalized numpy array.
-        """
-
-        if self.norm_kind == 'min_max':
-            return x * (self.norm_stats['max'][key].item()
-                        - self.norm_stats['min'][key].item()) + self.norm_stats['min'][key].item()
-
-        elif self.norm_kind == 'mean_std':
-            return x * self.norm_stats['std'][key].item() + self.norm_stats['mean'][key].item()
-        else:
-            raise ValueError(f'Denorm not implemented for norm-kind {self.norm_kind}.')
-
     def assign_predictions(self, pred: Tensor, data_sel: dict[str, Any]) -> None:
         """Assign predictions to the dataset (`self.ds`), handles denormalization.
 
         Parameters
         ----------
         pred: Tensor
-            The predictions with shape (batch_size, seq_len, num_targets).
+            The predictions with shape
+                - (batch_size, seq_len, num_targets) or
+                - (quantiles=3, batch_size, seq_len, num_targets)
         data_sel: dict[str, Any]
             The dictionary which is returned by the dataloader, containing location and time
             slices to assign the predictions to the right coordinates.
 
         """
 
-        time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
-        if any((len(data_sel[key]) != pred.shape[0] for key in time_sel_keys)):
-            raise AssertionError(
-                'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
-            )
-
-        pred = pred.detach()
-
+        pred = pred.detach().cpu()
         if pred.shape[-1] != self.num_targets:
             raise AssertionError(
                 'the last dimension of `pred` must have size equal to the number of targets.'
             )
 
-        for b in range(pred.shape[0]):
+        if pred.ndim == 3:
 
-            sel_assign = {
-                'location': data_sel['loc'][b],
-                'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
-            }
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != pred.shape[0] for key in time_sel_keys)):
+                raise AssertionError(
+                    'first dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
+                )
 
-            for target_i, target in enumerate(self.targets):
-                p = pred[b, -data_sel['pred_len'][b]:, target_i]
-                # if self.do_normalize:
-                #    p = self.denorm_np(p, target)
-                self.ds[target + '_hat'].loc[sel_assign] = p
+            for b in range(pred.shape[0]):
 
-    @classmethod
-    def get_norm_stats(
-            cls,
-            ds: xr.Dataset,
-            features: list[str],
-            targets: list[str],
-            norm_kind: str = 'mean_std') -> dict[str, xr.Dataset]:
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                    'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
+                }
 
-        if norm_kind == 'min_max':
-            norm_stats = {
-                'min': ds[features + targets].min().compute(),
-                'max': ds[features + targets].max().compute(),
-            }
+                for target_i, target in enumerate(self.targets):
+                    p = pred[b, -data_sel['pred_len'][b]:, target_i]
 
-        elif norm_kind == 'mean_std':
-            norm_stats = {
-                'mean': ds[features + targets].mean().compute(),
-                'std': ds[features + targets].std().compute(),
-            }
+                    self.ds[target + '_hat'].loc[{**sel_assign, 'quantile': 0.5}] = p
+
+        elif pred.ndim == 4:
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != pred.shape[1] for key in time_sel_keys)):
+                raise AssertionError(
+                    'second dimension size of argument `pred` must be equal to the length of each values in `data_sel`.'
+                )
+
+            for b in range(pred.shape[1]):
+
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                    'time': slice(data_sel['pred_start'][b], data_sel['pred_end'][b])
+                }
+
+                for target_i, target in enumerate(self.targets):
+                    p = pred[:, b, -data_sel['pred_len'][b]:, target_i]
+
+                    for i, q in enumerate([0.1, 0.5, 0.9]):
+                        self.ds[target + '_hat'].loc[{**sel_assign, 'quantile': q}] = p[i, ...]
         else:
             raise ValueError(
-                f'`norm_kind` must be one of (\'mean_std\' | \'min_max\'), is {norm_kind}.'
+                f'predictions must have 3 or 4 dimensions, is {pred.ndim}.'
             )
+
+    def assign_sensitivities(
+            self,
+            sensitivities: Union[Tensor, list[Tensor]],
+            data_sel: dict[str, Any]) -> None:
+        """Assign predictions to the dataset (`self.ds`), handles denormalization.
+
+        Parameters
+        ----------
+        sensitivities: Tensor or list[Tensor]
+            If a Tensor is passed, num_targets must be 1. Else, list elements correspond to targets.
+            Each list element has shape
+                - (batch_size, *1461, seq_len, num_features)
+        data_sel: dict[str, Any]
+            The dictionary which is returned by the dataloader, containing location and time
+            slices to assign the predictions to the right coordinates.
+
+        """
+
+        sensitivities = self._check_sensitivities(sensitivities, data_sel)
+
+        for target_i, target in enumerate(self.targets):
+            sens = sensitivities[target_i]
+            if isinstance(sens, Tensor):
+                sens = sens.detach().cpu()
+
+            for b in range(sens.shape[0]):
+
+                sel_assign = {
+                    'location': data_sel['loc'][b].cpu(),
+                }
+
+                for target_i, target in enumerate(self.targets):
+                    
+                    p = sens[b, :, :]
+
+                    self.sensitivities[target + '_sens'].loc[{**sel_assign}] = p
+
+
+    def _check_sensitivities(self, sensitivities: Tensor, data_sel: dict[str, Any]) -> list[Tensor]:
+        if not isinstance(sensitivities, list):
+            sensitivities = [sensitivities]
+        else:
+            raise TypeError(
+                f'`sensitivities` must be a Tensor or a list of Tensors, is `{type(sensitivities).__name__}`.'
+            )
+
+        for sens_i, sens in enumerate(sensitivities):
+            if not (isinstance(sens, Tensor) or isinstance(sens, np.ndarray)):
+                raise TypeError(
+                    f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
+                )
+            _, num_time, num_ref_time, num_vars =  sens.shape
+            if not num_time == 1461:
+                raise ValueError(
+                    f'The sensitivities second dimension must have a length of 1461, is {num_time}.'
+                )
+            if num_time > num_ref_time:
+                raise ValueError(
+                    'the second dimension (time) is larger than the third dimension (ref_time). Did you mix up '
+                    'the dimensions? Hint: the target\'s second variable time t`s sensitivity towards feature at '
+                    'time in context_time.'
+                )
+            if num_vars != self.num_features:
+                raise ValueError(
+                    'the last dimension of `sensitivities` must be equal to the number of features.'
+                )
+
+            time_sel_keys = ['loc', 'warmup_start', 'pred_start', 'pred_end', 'pred_len']
+            if any((len(data_sel[key]) != sens.shape[0] for key in time_sel_keys)):
+                raise ValueError(
+                    f'first dimension size of argument `sensitivities[{sens_i}]` must be equal to the length '
+                    'of each values in `data_sel`.'
+                )
+
+        return sensitivities
+
+    @staticmethod
+    def get_norm_stats(
+            ds: xr.Dataset,
+            features: list[str],
+            dtype: str = 'float32') -> dict[str, Tensor]:
+
+        norm_stats = {
+            'mean': torch.as_tensor(ds[features].mean().to_array().values.astype(dtype)),
+            'std': torch.as_tensor(ds[features].std().to_array().values.astype(dtype)),
+        }
 
         return norm_stats
 
@@ -406,16 +436,19 @@ class TSData(Dataset):
 class DataModule(pl.LightningDataModule):
     """Defines a lightning data module."""
 
-    def __init__(self, data_path: str,
-                 features: list[str],
-                 targets: list[str],
-                 train_subset: dict[str, Any],
-                 valid_subset: dict[str, Any],
-                 test_subset: Optional[dict[str, Any]] = None,
-                 window_size: int = 10,
-                 context_size: int = 1,
-                 load_data: bool = True,
-                 **dataloader_kwargs) -> None:
+    def __init__(
+            self,
+            data_path: str,
+            features: list[str],
+            targets: list[str],
+            train_subset: dict[str, Any],
+            valid_subset: dict[str, Any],
+            test_subset: Optional[dict[str, Any]] = None,
+            window_size: int = 10,
+            context_size: int = 1,
+            load_data: bool = True,
+            dtype: str = 'float32',
+            **dataloader_kwargs) -> None:
         """Initialize lightning data module.
 
         Return shapes
@@ -454,6 +487,8 @@ class DataModule(pl.LightningDataModule):
             context. Is the same for training, validation, and test set.
         load_data: bool (default is `True`)
             If 'True', data is loaded into memory.
+        dtype: str (default is 'float32')
+            The numeric data type to return.
         dataloader_kwargs:
             Keyword arguments passed to 'DataLoader' (e.g., batch_size) for all the sets. Note that
             the argument `shuffle` is already handled (`True` for training, `False` else).
@@ -473,11 +508,15 @@ class DataModule(pl.LightningDataModule):
         self.window_size = window_size
         self.context_size = context_size
 
+        self.dtype = dtype
+
         self.dataloader_kwargs = dataloader_kwargs
 
         # Create empty target variables with naming `<target>_hat`.
         for target in self.targets:
-            self.ds[target + '_hat'] = xr.full_like(self.ds[target], np.nan)
+            dummy = xr.full_like(self.ds[target], np.nan)
+            dummy = dummy.expand_dims(quantile=[0.1, 0.5, 0.9])
+            self.ds[target + '_hat'] = dummy
 
         self.ds['code'] = xr.full_like(self.ds[self.targets[0]], -1)
 
@@ -485,26 +524,41 @@ class DataModule(pl.LightningDataModule):
         self.norm_stats = TSData.get_norm_stats(
             ds=training_set,
             features=self.features,
-            targets=self.targets,
-            norm_kind='mean_std')
+            dtype=self.dtype)
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
-        return self._create_dataloader(self.train_subset, shuffle=True, return_full_seq=False)
+        return self._create_dataloader(
+            self.train_subset,
+            shuffle=True,
+            return_full_seq=False,
+            add_sensitifivy_ds=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
-        return self._create_dataloader(self.valid_subset, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(
+            self.valid_subset,
+            shuffle=False,
+            return_full_seq=True,
+            add_sensitifivy_ds=True)
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
-
-        return self._create_dataloader(self.test_subset, shuffle=False, return_full_seq=True)
+        return self._create_dataloader(
+            self.test_subset,
+            shuffle=False,
+            return_full_seq=True,
+            add_sensitifivy_ds=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
 
-    def _create_dataloader(self, ds_selector: dict[str, Any], shuffle: bool, return_full_seq: bool) -> DataLoader:
+    def _create_dataloader(
+            self,
+            ds_selector: dict[str, Any],
+            shuffle: bool,
+            return_full_seq: bool,
+            add_sensitifivy_ds: bool) -> DataLoader:
         self._assert_norm_stats()
         ds = self.ds.sel(**ds_selector)
 
@@ -517,7 +571,8 @@ class DataModule(pl.LightningDataModule):
             targets=self.targets,
             ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
-            norm_stats=self.norm_stats
+            add_sensitifivy_ds=add_sensitifivy_ds,
+            dtype=self.dtype,
         )
         return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
 

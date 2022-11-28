@@ -192,9 +192,6 @@ if __name__ == "__main__":
     # diff[variables].plot.line(subplots=True, layout=(6,4), figsize=(14,10))
     # plt.show()
     
-    # #(diff['GPP'] - diff['GPP_constant-CO2']).plot()
-    # plt.show()
-    
     #%% disguise variables
     vrs = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'sfcWind']
     ## store mapping

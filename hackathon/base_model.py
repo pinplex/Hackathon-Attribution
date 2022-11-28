@@ -1,5 +1,6 @@
 import torch
 import pytorch_lightning as pl
+import xarray as xr
 
 from typing import Any, Union, Optional
 from torch import Tensor
@@ -16,20 +17,54 @@ class BaseModel(pl.LightningModule):
     def __init__(
             self,
             learning_rate: float,
-            weight_decay: float):
+            weight_decay: float,
+            norm_stats: dict[str, Tensor]):
+        """Initialize a BeseModel.
+
+        Parameters
+        ----------
+        learning_rate: The learning rate.
+        weight_decat: The weight decay.
+        norm_stats: Feature normalization stats of format {'mean': Tensor, 'std': Tensor}, with
+            both tensors of shape (num_features,). The order of the features must be the same
+            as in `batch['x']` (see `.common_step(...)2`).
+        """
         super().__init__()
 
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
 
+        self.norm_mean: Tensor
+        self.register_buffer(name='norm_mean', tensor=norm_stats['mean'])
+        self.norm_std: Tensor
+        self.register_buffer(name='norm_std', tensor=norm_stats['std'])
+
         self.loss_fn = torch.nn.MSELoss()
 
         self.save_hyperparameters()
 
+    def normalize(self, x: Tensor) -> Tensor:
+        """Normalize a numpy array.
+
+        Parameters
+        ----------
+        x: A tensor of features to be normalized.
+
+        Returns
+        -------
+        The normalized Tensor.
+        """
+
+        return (x - self.norm_mean) / self.norm_std
+
     def common_step(self, batch: dict[str, Union[Tensor, dict[str, Any]]],
                     step_name: Optional[str] = None) -> tuple[Tensor, Tensor]:
-        x = batch['x']
+
+        # [batch, sequence, features]
+        x = self.normalize(batch['x'])
+        # [batch, sequence, targets]
         y = batch['y']
+
         data_sel = batch['data_sel']
 
         y_hat = self(x)
