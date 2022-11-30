@@ -29,7 +29,7 @@ class TSData(Dataset):
             targets: list[str],
             ts_window_size: int = -1,
             ts_context_size: int = 1,
-            add_sensitifivy_ds: bool = False,
+            add_sensitivity_ds: bool = False,
             dtype: str = 'float32'):
 
         """Time series dataset.
@@ -74,7 +74,7 @@ class TSData(Dataset):
             With '-1', the full sequence is returned. The value must be >0 or -1.
         ts_context_size: int (default is 1)
             The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary depending on the number of days in the sequence (leap years).
-        add_sensitifivy_ds: bool (default is `False`)
+        add_sensitivity_ds: bool (default is `False`)
             If `True`, an empty dataset is added to later store the sensivivities.
         dtype: str (default is 'float32')
             The numeric data type to return.
@@ -86,11 +86,11 @@ class TSData(Dataset):
         self.targets = [targets] if isinstance(targets, str) else targets
         self.ts_window_size = ts_window_size
         self.ts_context_size = ts_context_size
-        self.add_sensitifivy_ds = add_sensitifivy_ds
+        self.add_sensitivity_ds = add_sensitivity_ds
         self.dtype = dtype
 
         # Create empty sensitivity dataset
-        if self.add_sensitifivy_ds:
+        if self.add_sensitivity_ds:
             test_years = np.unique(self.ds.time.dt.year)
             if len(test_years) < 4:
                 raise ValueError(
@@ -147,7 +147,8 @@ class TSData(Dataset):
 
         Returns
         -------
-        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the coordinates for result assignment.
+        A tuple of numpy arrays for features and targets (see 'Return shapes' for details, and the coordinates for
+        result assignment.
         """
 
         time_coord, location_coord = self.sample_coords[idx]
@@ -270,7 +271,6 @@ class TSData(Dataset):
 
                     self.sensitivities[target + '_sens'].loc[{**sel_assign}] = p
 
-
     def _check_sensitivities(self, sensitivities: Tensor, data_sel: dict[str, Any]) -> list[Tensor]:
         if not isinstance(sensitivities, list):
             sensitivities = [sensitivities]
@@ -284,7 +284,7 @@ class TSData(Dataset):
                 raise TypeError(
                     f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
                 )
-            _, num_time, num_ref_time, num_vars =  sens.shape
+            _, num_time, num_ref_time, num_vars = sens.shape
             if not num_time == 1461:
                 raise ValueError(
                     f'The sensitivities second dimension must have a length of 1461, is {num_time}.'
@@ -571,7 +571,7 @@ class DataModule(pl.LightningDataModule):
             targets=self.targets,
             ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
-            add_sensitifivy_ds=add_sensitifivy_ds,
+            add_sensitivity_ds=add_sensitifivy_ds,
             dtype=self.dtype,
         )
         return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)

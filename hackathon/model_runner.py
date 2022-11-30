@@ -18,7 +18,7 @@ from hackathon.base_model import BaseModel
 
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
-    def __init__(self, model_type_list: list[type], checkpoint_path_list: list[str]) -> None:
+    def __init__(self, model_type_list: list[type[BaseModel]], checkpoint_path_list: list[str]) -> None:
         """Initializes Ensemble.
 
         Parameters
