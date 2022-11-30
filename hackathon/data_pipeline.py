@@ -5,18 +5,16 @@ Author: bkraft@bgc-jena.mpg.de
 
 import itertools as it
 from typing import Any, Optional
+from typing import Union
 
-import torch
-from torch import Tensor
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 import xarray as xr
 from numpy.typing import ArrayLike
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-
-from typing import Union
 
 
 class TSData(Dataset):
@@ -73,9 +71,10 @@ class TSData(Dataset):
             The sequence window size in YEARS that defines the sequence lengths of a sample.
             With '-1', the full sequence is returned. The value must be >0 or -1.
         ts_context_size: int (default is 1)
-            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary depending on the number of days in the sequence (leap years).
+            The additional context length in YEARS to use at the start of the time series ("warm-up"). May vary
+            depending on the number of days in the sequence (leap years).
         add_sensitivity_ds: bool (default is `False`)
-            If `True`, an empty dataset is added to later store the sensivivities.
+            If `True`, an empty dataset is added to later store the sensitivities.
         dtype: str (default is 'float32')
             The numeric data type to return.
         """
@@ -532,7 +531,7 @@ class DataModule(pl.LightningDataModule):
             self.train_subset,
             shuffle=True,
             return_full_seq=False,
-            add_sensitifivy_ds=False)
+            add_sensitivity_ds=False)
 
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
@@ -540,7 +539,7 @@ class DataModule(pl.LightningDataModule):
             self.valid_subset,
             shuffle=False,
             return_full_seq=True,
-            add_sensitifivy_ds=True)
+            add_sensitivity_ds=True)
 
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
@@ -548,7 +547,7 @@ class DataModule(pl.LightningDataModule):
             self.test_subset,
             shuffle=False,
             return_full_seq=True,
-            add_sensitifivy_ds=True)
+            add_sensitivity_ds=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
@@ -558,7 +557,7 @@ class DataModule(pl.LightningDataModule):
             ds_selector: dict[str, Any],
             shuffle: bool,
             return_full_seq: bool,
-            add_sensitifivy_ds: bool) -> DataLoader:
+            add_sensitivity_ds: bool) -> DataLoader:
         self._assert_norm_stats()
         ds = self.ds.sel(**ds_selector)
 
@@ -571,7 +570,7 @@ class DataModule(pl.LightningDataModule):
             targets=self.targets,
             ts_window_size=-1 if return_full_seq else self.window_size,
             ts_context_size=self.context_size,
-            add_sensitivity_ds=add_sensitifivy_ds,
+            add_sensitivity_ds=add_sensitivity_ds,
             dtype=self.dtype,
         )
         return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
