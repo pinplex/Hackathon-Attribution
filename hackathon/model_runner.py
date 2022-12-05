@@ -100,7 +100,11 @@ class ModelRunner(object):
 
         pl.seed_everything(seed)
 
-    def data_setup(self, fold: int, **kwargs) -> pl.LightningDataModule:
+    def data_setup(
+            self,
+            fold: int,
+            custom_test_sel: Optional[dict[str, Any]] = None,
+            **kwargs) -> pl.LightningDataModule:
         """Setup datamodule of class pl.LightningDataModule with a given cross validation fold.
 
         Parameters
@@ -108,6 +112,9 @@ class ModelRunner(object):
         fold: the fold id, a dummy parameter that must be in the range 0 to `num_folds`-1.
             Override and implement your own data splitting routine. If fold = -1, the test
             data is returned (not implemented yet).
+        custom_test_sel: a custom test set selection for use with new data (i.e., for
+            inference only). The selection us used with xarray `sel(**custom_test_sel)`.
+            E.g., `data_setup(custom_test_sel={'time': slice('2014', '2015')})`.
         kwargs: Are passed to the DataModule.
 
         Returns
@@ -144,11 +151,12 @@ class ModelRunner(object):
             features=[f'var{i}' for i in range(1, 8)] + ['co2'],
             targets=['GPP'],
             # You may change these:
-            train_subset=train_sel,
-            valid_subset=valid_sel,
-            test_subset=valid_sel,
+            train_subset=custom_test_sel if custom_test_sel else train_sel,
+            valid_subset=custom_test_sel if custom_test_sel else valid_sel,
+            test_subset=custom_test_sel if custom_test_sel else valid_sel,
             window_size=3,
             context_size=1,
+            test_only=custom_test_sel is not None,
             **kwargs)
 
         return datamodule
@@ -156,7 +164,7 @@ class ModelRunner(object):
     def trainer_setup(
             self,
             version: str,
-            patience: int = 50,
+            patience: int = 15,
             max_epochs: int = -1,
             **kwargs) -> pl.Trainer:
         """Trainer setup.
@@ -170,6 +178,7 @@ class ModelRunner(object):
         patience: The patiance, training will be stopped after n iterations
             with no improvement.
         max_epochs: Maximum number of epochs to run, default is -1 (infinite).
+        kwargs: Keyword arguments passed to `pl.Trainer(..., **kwargs)`
 
         Returns
         -------
