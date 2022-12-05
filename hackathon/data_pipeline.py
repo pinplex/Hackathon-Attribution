@@ -447,6 +447,7 @@ class DataModule(pl.LightningDataModule):
             window_size: int = 10,
             context_size: int = 1,
             load_data: bool = True,
+            test_only: bool = False,
             dtype: str = 'float32',
             **dataloader_kwargs) -> None:
         """Initialize lightning data module.
@@ -487,6 +488,9 @@ class DataModule(pl.LightningDataModule):
             context. Is the same for training, validation, and test set.
         load_data: bool (default is `True`)
             If 'True', data is loaded into memory.
+        test_only: bool (default is `False`)
+            If set to `True`, only th test loader can be retreived. This is a security measure
+            to avoid training on the test set in inference model (with new data).
         dtype: str (default is 'float32')
             The numeric data type to return.
         dataloader_kwargs:
@@ -508,6 +512,8 @@ class DataModule(pl.LightningDataModule):
         self.window_size = window_size
         self.context_size = context_size
 
+        self.test_only = test_only
+
         self.dtype = dtype
 
         self.dataloader_kwargs = dataloader_kwargs
@@ -516,7 +522,7 @@ class DataModule(pl.LightningDataModule):
         for target in self.targets:
             dummy = xr.full_like(self.ds[target], np.nan)
             dummy = dummy.expand_dims(quantile=[0.1, 0.5, 0.9])
-            self.ds[target + '_hat'] = dummy
+            self.ds[target + '_hat'] = dummy.copy()
 
         self.ds['code'] = xr.full_like(self.ds[self.targets[0]], -1)
 
@@ -528,6 +534,10 @@ class DataModule(pl.LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
+        if self.test_only:
+            raise AssertionError(
+                'train dataloader cannot be retreived as `test_only` is set to `True`.'
+            )
         return self._create_dataloader(
             self.train_subset,
             shuffle=True,
