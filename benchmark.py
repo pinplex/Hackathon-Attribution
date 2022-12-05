@@ -15,18 +15,18 @@ from hackathon.models.simplemlp import model_setup as simplemlp_model
 
 model_funs = [
     attn_model,
-    conv1d_model,
-    linear_model,
-    lstm_model,
-    efficiency_model,
-    resnet_model,
-    simplemlp_model
+    #conv1d_model,
+    #linear_model,
+    #lstm_model,
+    #efficiency_model,
+    #resnet_model,
+    #simplemlp_model
 ]
 
 def main(args: Namespace):
     for model_fn in model_funs:
         
-        model_name = model_fn.__module__.split('.')[-1]
+        model_name = model_fn.__module__.split('.')[-1].lower()
         log_dir = f'./hackathon/logs/{model_name}/xval'
         if os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
