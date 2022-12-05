@@ -34,11 +34,11 @@ b = 0.383 # Power-Law
 kind = 'CMIP6' # 'CMIP6' or 'OBS'
 
 # for CMIP6
-simulation = 'historical' # 'ssp585'
+simulation = 'ssp585' # 'historical'
 ESM = 'MPI-ESM1-2-LR'
 
 if kind == 'CMIP6':
-    infile = 'data/'+kind+'/predictor-variables_'+simulation
+    infile = 'data/'+kind+'/predictor-variables_'+simulation+''
     outfile = 'data/'+kind+'/predictor-variables_'+simulation+'+'+'GPP'
     
 else:
@@ -196,6 +196,7 @@ if __name__ == "__main__":
     vrs = ['t2mmin', 'vpd', 'ssrd', 'FPAR', 'tp', 'e', 'sfcWind']
     ## store mapping
     if os.path.exists('variable_mapping.pickle'):
+        print('Variable mapping found.')
         with open('variable_mapping.pickle', 'rb') as handle:
             mapping = pickle.load(handle)
             

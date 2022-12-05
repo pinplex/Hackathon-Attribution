@@ -1,15 +1,12 @@
-
 from abc import abstractmethod
-import torch
-from torch.utils.data import DataLoader
-import xarray as xr
-import numpy as np
-
-from torch import Tensor
 from typing import Iterable, Optional
 
+import torch
+import xarray as xr
+from torch import Tensor
+from torch.utils.data import DataLoader
+
 from hackathon.model_runner import Ensemble
-from hackathon.data_pipeline import TSData
 
 
 class BaseExplainer(object):
@@ -87,15 +84,15 @@ class BaseExplainer(object):
         if gpu is not None:
             model.to(self.device)
 
-        expanations = self._custom_explanations(
+        explanations = self._custom_explanations(
             model=model,
             val_dataloader=val_dataloader)
 
-        expanations = self._merge_explanation(expanations)
+        explanations = self._merge_explanation(explanations)
 
         self.device = None
 
-        return expanations
+        return explanations
 
     def _merge_explanation(self, ex: tuple):
         if not isinstance(ex, tuple):
@@ -113,15 +110,15 @@ class BaseExplainer(object):
         if not isinstance(ex[0], Iterable):
             raise ValueError(
                 '`explanations` returned by `_custom_explanations` must contain an '
-                '`Iterable` at position 0 (varaible probabilities), got '
+                '`Iterable` at position 0 (variable probabilities), got '
                 f'type `{type(ex[0]).__name__}`.'
             )
 
         if not len(ex[0]) == 8:
             raise ValueError(
                 '`explanations` returned by `_custom_explanations` must contain an '
-                '`Iterable` of size 8 at position 0 (varaible probabilities), '
-                f'length is `{len(ex0)}`.'
+                '`Iterable` of size 8 at position 0 (variable probabilities), '
+                f'length is `{len(ex[0])}`.'
             )
 
         # Try to cast to list of floats.
@@ -130,14 +127,14 @@ class BaseExplainer(object):
             if isinstance(el, str):
                 raise TypeError(
                     '`explanations` returned by `_custom_explanations` at position 0 '
-                    '(varaible probabilities) must contain an `Iterable` with '
+                    '(variable probabilities) must contain an `Iterable` with '
                     'element type `float`, got elements of type `str`.'
                 )
             try:
                 el_f = float(el.cpu()) if isinstance(el, Tensor) else float(el)
             except Exception as e:
                 raise e from TypeError(
-                    'while trying to cast `explanations` position 0 (varaible '
+                    'while trying to cast `explanations` position 0 (variable '
                     'probabilities) to a list of floats, an error occurred '
                     '(see Traceback).'
                 )
@@ -171,7 +168,7 @@ class BaseExplainer(object):
 
         return ex_merged
 
-    def batch_to_device(self, batch: dict[Tensor]) -> dict[Tensor]:
+    def batch_to_device(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
 
         if self.device is not None:
             batch['x'] = batch['x'].to(self.device)
