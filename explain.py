@@ -36,7 +36,7 @@ def main(args: Namespace):
     print('\n+++ Explanations are saved to `./hackathon/logs/<model_name>/expl/<explainer_name>/explanations.nc>`+++\n')
 
     for model in (pbar0 := tqdm(model_funs)):
-        model_name = model.__module__.split('.')[-1]
+        model_name = model.__module__.split('.')[-1].lower()
         log_dir = f'./hackathon/logs/{model_name}/expl'
         if os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
