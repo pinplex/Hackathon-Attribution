@@ -583,7 +583,11 @@ class DataModule(pl.LightningDataModule):
             add_sensitivity_ds=add_sensitivity_ds,
             dtype=self.dtype,
         )
-        return DataLoader(dataset, shuffle=shuffle, **self.dataloader_kwargs)
+        return DataLoader(
+            dataset,
+            shuffle=shuffle,
+            **self.dataloader_kwargs
+        )
 
     def _assert_norm_stats(self):
         assert self.norm_stats, ('`norm_stats` have not been registered, '
