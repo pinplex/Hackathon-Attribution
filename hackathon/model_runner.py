@@ -1,4 +1,3 @@
-
 import os
 from abc import abstractmethod
 
@@ -10,7 +9,7 @@ import torch
 from torch import Tensor
 import xarray as xr
 
-from typing import Optional, Callable, Union, Any
+from typing import Optional, Callable, Union, Any, Tuple, List
 
 from hackathon.data_pipeline import DataModule
 from hackathon.base_model import BaseModel
@@ -18,12 +17,16 @@ from hackathon.base_model import BaseModel
 
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
+
     def __init__(self, model_type_list: list[type[BaseModel]], checkpoint_path_list: list[str]) -> None:
         """Initializes Ensemble.
 
         Parameters
         ----------
-        model_list: A list of models, each a BaseModel.
+        model_type_list: list[type[BaseModel]]
+            A list of models, each a BaseModel.
+        checkpoint_path_list: list[str]
+            Alist of the ensemble members weight/checkpoint paths.
         """
         super().__init__()
 
@@ -40,20 +43,41 @@ class Ensemble(pl.LightningModule):
 
         self.models = torch.nn.ModuleList(models)
 
-    def forward(self, batch: dict[str, Tensor], return_quantiles: bool = True) -> Tensor:
-        """Forward call all ensemble members and reduces the output.
-        
-        batch: a batch containing features and targets.
-        return_quantiles: if `True`, ensemble quantiles (0.1, 0.5, 0.9) are returned,
+    def forward(self, batch: dict[str, Tensor], return_quantiles: bool = True,
+                return_members_io: bool = False) -> Union[Tensor, Tuple[List[Tensor], List[Tensor]]]:
+        """Forward call all ensemble members and reduces the output. If `return_members_io` is `True` a tuple is
+        returned with the ensemble outputs and their corresponding normalized inputs are returned.
+
+        Parameters
+        ----------
+        batch:
+            a batch containing features and targets.
+        return_quantiles: bool
+            if `True`, ensemble quantiles (0.1, 0.5, 0.9) are returned,
             else only the median (0.5 quantile) is returned.
+        return_members_io: bool
+            if `True` `return_quantiles` is ignored and each ensemble members normalized input and
+            output are  returned.
         """
         y_hats = []
+
+        x_norms = None
+        if return_members_io:
+            x_norms = []
+
         for module in self.models:
-            y_hat, _ = module.common_step(batch)
+            res = module.common_step(batch, return_x_norm=return_members_io)
+            y_hat = res[0]
             y_hats.append(y_hat)
 
-        y_hats = torch.stack(y_hats, dim=0)
+            if return_members_io:
+                x_norm = res[2]
+                x_norms.append(x_norm)
 
+        if return_members_io:
+            return y_hats, x_norms
+
+        y_hats = torch.stack(y_hats, dim=0)
         if return_quantiles:
             y_hats_q = y_hats.quantile(q=torch.tensor([0.1, 0.5, 0.9], device=y_hats.device), dim=0)
         else:
@@ -77,6 +101,7 @@ class Ensemble(pl.LightningModule):
 class ModelRunner(object):
     """ModelRunner implements the training scheme.
     """
+
     def __init__(
             self,
             log_dir: str,
