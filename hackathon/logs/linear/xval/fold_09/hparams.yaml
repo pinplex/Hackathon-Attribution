@@ -1,0 +1,37 @@
+learning_rate: 0.01
+norm_stats:
+  mean: !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+      AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+      aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+      Z2UKcQFYDgAAADk0NDA3NjYwODE5MDU2cQJYAwAAAGNwdXEDSwhOdHEEUS6AAl1xAFgOAAAAOTQ0
+      MDc2NjA4MTkwNTZxAWEuCAAAAAAAAADHzQxDuoTavthUL0CnhDRBJ3VNQLQc+78LfAo/uVybQw==
+  - 0
+  - !!python/tuple
+    - 8
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
+  std: !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+      AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+      aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+      Z2UKcQFYDgAAADk0NDA4MDYyMTMwMjg4cQJYAwAAAGNwdXEDSwhOdHEEUS6AAl1xAFgOAAAAOTQ0
+      MDgwNjIxMzAyODhxAWEuCAAAAAAAAAA/GC1DkAFQQaaelECi7/hAHZXOP7T10D9trHA+wCa7QQ==
+  - 0
+  - !!python/tuple
+    - 8
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
+num_features: 8
+num_targets: 1
+weight_decay: 0.0
