@@ -4,5 +4,4 @@
 *.ipynb_checkpoints/
 .vscode
 .spyproject
-logs/
 dev/
