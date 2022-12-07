@@ -60,7 +60,7 @@ class MultiheadAttn(BaseModel):
             num_hidden: int,
             num_layers: int,
             dropout: float = 0.1,
-            max_temp_context: int = 365,
+            max_temp_context: int = 400,
             **kwargs):
         """Implements a multihead self-attention model.
 
@@ -87,7 +87,7 @@ class MultiheadAttn(BaseModel):
             dropout (float):
                 The dropout applied after each layer, in range [0, 1).
             max_temp_context (int):
-                The maximum length of attention, default is 365.
+                The maximum length of attention, default is 1461 (four years).
             **kwargs:
                 Keyword arguments passed to BaseModel (parent class).
         """
@@ -131,6 +131,28 @@ class MultiheadAttn(BaseModel):
         return hook
 
     def forward(self, src: Tensor) -> Tensor:
+        # Quick fix for forward run using too much memory:
+        # Cut sequence in three overlapping pieces, predict, combine.
+        S = src.shape[1]
+        overlap = self.max_temp_context
+        res = []
+        if S > (50 * 365.25):
+            s = S // 3
+            starts = torch.clamp(s * torch.arange(3) - overlap, min=0)
+            ends = torch.clamp(s * torch.arange(1, 4), max=S)
+            for i, (start, end) in enumerate(zip(starts, ends)):
+                out = self.forward_(src[:, start:end, :])
+                if i == 0:
+                    res.append(out)
+                else:
+                    res.append(out[:, overlap:, :])
+            return torch.concat(res, dim=1)
+
+        else:
+            return self.forward_(src)
+
+
+    def forward_(self, src: Tensor) -> Tensor:
         """
         Args:
             src: Tensor, shape [seq_len, batch_size]
@@ -186,13 +208,13 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
     """
 
     default_params = dict(
-        d_model=8,
-        num_head=1,
+        d_model=16,
+        num_head=2,
         num_hidden=64,
         num_layers=1,
-        dropout=0.15,
+        dropout=0.3,
         learning_rate=0.001,
-        weight_decay=0.01,
+        weight_decay=0.0001,
     )
     default_params.update(kwargs)
 
@@ -204,6 +226,7 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
     )
 
     return model
+
 
 def get_search_space() -> dict[str, Iterable[Any]]:
     search_space = {
