@@ -2,7 +2,7 @@ import torch
 import pytorch_lightning as pl
 import xarray as xr
 
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, Tuple
 from torch import Tensor
 
 
@@ -14,6 +14,7 @@ class BaseModel(pl.LightningModule):
     Note that the prediction step (i.e., `my_trainer.predict(...)`) automatically
     assigns the predictions to the datamodule's dataset with name '<target>_hat'.
     """
+
     def __init__(
             self,
             learning_rate: float,
@@ -58,8 +59,8 @@ class BaseModel(pl.LightningModule):
         return (x - self.norm_mean) / self.norm_std
 
     def common_step(self, batch: dict[str, Union[Tensor, dict[str, Any]]],
-                    step_name: Optional[str] = None) -> tuple[Tensor, Tensor]:
-
+                    step_name: Optional[str] = None,
+                    return_x_norm: bool = False) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
         # [batch, sequence, features]
         x = self.normalize(batch['x'])
         # [batch, sequence, targets]
@@ -74,6 +75,10 @@ class BaseModel(pl.LightningModule):
 
         if step_name:
             self.log(f'{step_name}_loss', loss, on_step=step_name == 'train', on_epoch=True, batch_size=x.shape[0])
+
+        if return_x_norm:
+            return y_hat, loss, x
+
         return y_hat, loss
 
     def training_step(
