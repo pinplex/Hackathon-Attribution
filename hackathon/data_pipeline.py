@@ -283,16 +283,10 @@ class TSData(Dataset):
                 raise TypeError(
                     f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
                 )
-            _, num_time, num_ref_time, num_vars = sens.shape
-            if not num_time == 1461:
+            _, num_context, num_time, num_vars = sens.shape
+            if not num_context == 1461:
                 raise ValueError(
-                    f'The sensitivities second dimension must have a length of 1461, is {num_time}.'
-                )
-            if num_time > num_ref_time:
-                raise ValueError(
-                    'the second dimension (time) is larger than the third dimension (ref_time). Did you mix up '
-                    'the dimensions? Hint: the target\'s second variable time t`s sensitivity towards feature at '
-                    'time in context_time.'
+                    f'The sensitivities second dimension must have a length of 1461, is {num_context}.'
                 )
             if num_vars != self.num_features:
                 raise ValueError(
