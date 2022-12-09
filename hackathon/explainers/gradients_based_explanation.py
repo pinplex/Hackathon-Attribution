@@ -230,5 +230,5 @@ class InputXGradExplainer(_BaseGradExplainer):
     pass
 
 
-class GradExplainer(IntegratedGradientsExplainer):
+class GradExplainer(_BaseGradExplainer):
     pass
