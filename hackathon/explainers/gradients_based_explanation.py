@@ -22,13 +22,6 @@ def randn_baseline(std: float = 1) -> Callable[[dict[str, Any]], torch.Tensor]:
     return fn
 
 
-def _none_baseline(batch: dict[str, Any]):
-    """
-    This function is exclusively used for InpXGradExplainer.
-    """
-    return None
-
-
 class IntegratedGradientsExplainer(BaseExplainer):
 
     def __init__(self, n_step: int = 50,
@@ -226,14 +219,16 @@ class IntegratedGradientsExplainer(BaseExplainer):
         return grads
 
 
-class InputXGradExplainer(IntegratedGradientsExplainer):
+class _BaseGradExplainer(IntegratedGradientsExplainer):
     def __init__(self, **kwargs):
         assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for '
                                                                           'InpXGradExplainer.')
-        super(InputXGradExplainer, self).__init__(n_step=0, baseline_fn=_none_baseline, **kwargs)
+        super(_BaseGradExplainer, self).__init__(n_step=0, baseline_fn=lambda batch: None, **kwargs)
+
+
+class InputXGradExplainer(_BaseGradExplainer):
+    pass
+
 
 class GradExplainer(IntegratedGradientsExplainer):
-    def __init__(self, **kwargs):
-        assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for '
-                                                                          'GradExplainer.')
-        super(GradExplainer, self).__init__(n_step=0, baseline_fn=_none_baseline, **kwargs)
+    pass
