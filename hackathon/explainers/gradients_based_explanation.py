@@ -83,6 +83,8 @@ class IntegratedGradientsExplainer(BaseExplainer):
                 sensitivities = inp_x_grads_batch
             elif isinstance(self, GradExplainer):
                 sensitivities = grads_batch
+            else:
+                sensitivities = grads_batch  # default case if we're using IG explainer
 
             time_pad = batch['x'].shape[1] - sensitivities.shape[2]
             pad_width = ((0, 0),  # batch dim
