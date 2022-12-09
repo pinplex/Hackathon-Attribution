@@ -139,14 +139,14 @@ class IntegratedGradientsExplainer(BaseExplainer):
         assert (baseline is None and self.n_step == 0) or (baseline is not None and self.n_step > 0)
 
         if baseline is None:
-            grads, y_hat = self._grad_step_foreach_ig_step(x, batch_i, model)
+            grads, y_hat, x_norm = self._grad_step_foreach_ig_step(x, batch_i, model)
 
-            inp = x.detach().cpu()
+            inp = x_norm
         else:
             for ig_step in self._loop_wrapper(range(0, self.n_step + 1), leave=False, desc='IG loop'):
-                grads, y_hat = self._grad_step_foreach_ig_step(x, batch_i, model,
-                                                               ig_step=ig_step,
-                                                               baseline=baseline)
+                grads, y_hat, x_norm = self._grad_step_foreach_ig_step(x, batch_i, model,
+                                                                       ig_step=ig_step,
+                                                                       baseline=baseline)
                 all_grads.append(grads)
             grads = np.array(all_grads).mean(0)
 
@@ -192,11 +192,11 @@ class IntegratedGradientsExplainer(BaseExplainer):
         grad_list = list()
 
         for pred_off in self._loop_wrapper(range(pred_len), leave=False, desc='time_loop'):
-            pred_idx = pred_off - pred_len
+            pred_idx = (pred_off - pred_len) % batch_curr['y'].shape[-2]
             grads = self._grad_step_foreach_output_timestep(model, pred_idx, x_norm, y_hat)
             grad_list.append(grads)
         grads = np.array(grad_list)
-        return grads, y_hat
+        return grads, y_hat, torch.stack(x_norm).mean(0).detach().cpu()
 
     def _grad_step_foreach_output_timestep(self, model, pred_idx, x_norm, y_hat):
         num_ensembles = len(x_norm)
@@ -208,8 +208,10 @@ class IntegratedGradientsExplainer(BaseExplainer):
                                         inputs=x_norm[ensemble_idx],
                                         retain_graph=True,
                                         allow_unused=False)[0]
-            s = slice(pred_idx - self.n_sensitivity_days + 1, None if pred_idx == -1 else pred_idx + 1)
-            grads = grads[:, s].detach().cpu()
+            start_idx = max(0, pred_idx - self.n_sensitivity_days + 1)
+            end_idx = pred_idx + 1
+
+            grads = grads[:, start_idx:end_idx].detach().cpu()
             grads_per_ensemble.append(grads.numpy())
 
         grads = np.stack(grads_per_ensemble).mean(0)
