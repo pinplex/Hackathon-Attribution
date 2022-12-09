@@ -11,13 +11,13 @@ from hackathon.base_explanation import BaseExplainer
 from hackathon.data_pipeline import TSData
 
 
-def zeros_baseline(batch: dict[str, Any]):
+def zeros_baseline(batch: dict[str, Any]) -> torch.Tensor:
     return torch.zeros_like(batch['x'])
 
 
-def randn_baseline(std=1):
-    def fn(batch: dict[str, Any]):
-        return torch.randn_like(batch['x']) * std
+def randn_baseline(std: float = 1) -> Callable[[dict[str, Any]], torch.Tensor]:
+    def fn(batch: dict[str, Any]) -> torch.Tensor:
+        return torch.randn_like(batch['x']) * torch.tensor(std)
 
     return fn
 
