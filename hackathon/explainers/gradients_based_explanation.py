@@ -55,15 +55,18 @@ class IntegratedGradientsExplainer(BaseExplainer):
                              val_dataloader: DataLoader) -> Tuple[Tuple[float], float, xr.Dataset]:
 
         assert isinstance(val_dataloader.dataset, TSData), 'Dataset in DataLoader is of wrong type.'
-
         dataset: TSData = val_dataloader.dataset
+
         with torch.enable_grad():
-            grad_res, inp_x_grad_res = self._compute_grad_for_ds(model, val_dataloader, dataset)
+            self._compute_grad_for_ds(model, val_dataloader, dataset)
 
-        s = np.nansum(np.abs(grad_res), axis=(0, 1, 2, 3))
-        var_prob = s / np.sum(s)
+        # sensitivities shape: (cxt_len, time, batch, feats)
+        sensitivities = dataset.sensitivities['GPP_sens'].values
 
-        return tuple(var_prob), var_prob[self.co2_idx], dataset.sensitivities
+        var_prob = tuple(1 - np.nanmean(np.abs(sensitivities), axis=(0, 1, 2)))
+        gpp_sens = float(np.nanmean(sensitivities[..., self.co2_idx]))
+
+        return var_prob, gpp_sens, dataset.sensitivities
 
     def _compute_grad_for_ds(self, model: Ensemble,
                              dataloader: DataLoader,
@@ -80,7 +83,13 @@ class IntegratedGradientsExplainer(BaseExplainer):
                 sensitivities = inp_x_grads_batch
             else:
                 sensitivities = grads_batch
-            # TODO sensitivities somehow has the wrong shape..
+
+            time_pad = batch['x'].shape[1] - sensitivities.shape[2]
+            pad_width = ((0, 0),  # batch dim
+                         (0, 0),  # contex dim. 4yrs
+                         (time_pad, 0),  # time dim
+                         (0, 0))  # features dim
+            sensitivities = np.pad(sensitivities, pad_width, constant_values=np.nan)
 
             # Assign sensitivities to xr.Dataset.
             dataset.assign_sensitivities(
