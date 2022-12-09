@@ -81,7 +81,7 @@ class IntegratedGradientsExplainer(BaseExplainer):
 
             if isinstance(self, InputXGradExplainer):
                 sensitivities = inp_x_grads_batch
-            else:
+            elif isinstance(self, GradExplainer):
                 sensitivities = grads_batch
 
             time_pad = batch['x'].shape[1] - sensitivities.shape[2]
@@ -227,3 +227,9 @@ class InputXGradExplainer(IntegratedGradientsExplainer):
         assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for '
                                                                           'InpXGradExplainer.')
         super(InputXGradExplainer, self).__init__(n_step=0, baseline_fn=_none_baseline, **kwargs)
+
+class GradExplainer(IntegratedGradientsExplainer):
+    def __init__(self, **kwargs):
+        assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for '
+                                                                          'GradExplainer.')
+        super(GradExplainer, self).__init__(n_step=0, baseline_fn=_none_baseline, **kwargs)
