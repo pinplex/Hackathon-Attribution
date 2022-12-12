@@ -34,7 +34,7 @@ This repository contains code and data for the attribution hackathon.
 1. Make a copy of `hackathon/models/linear.py` within the same directory and rename it to a meaningful name, e.g., `hackathon/models/rnn.py`.
 1. Replace the class `Linear` with your model, give it a meaningful name, e.g., `class RNN(BaseModel)`. The model **must** subclass `BaseModel`!
 1. The model `__init__` method must take `**kwargs` and pass them to the parent class (`BaseModel`) like so:
-    ```
+    ```python
     class MyModel(BaseModel):
         def __init__(self, num_features: int, num_targets: int, **kwargs) -> None:
             super(MyModel, self).__init__(**kwargs)
@@ -49,7 +49,7 @@ This repository contains code and data for the attribution hackathon.
 
 
 1. Define a function `model_setup` within the same file that returns an initialized model (e.g., `hackathon/models/rnn.py`). The function must take the argument `norm_stats`. The `model_setup` function must follow this pattern:
-    ```
+    ```python
     def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
         """Create a model as subclass of hackathon.base_model.BaseModel.
 
@@ -74,7 +74,7 @@ This repository contains code and data for the attribution hackathon.
         return model
     ```
 1. Add your model to the `benchmark.py` file by importing and adding the `model_setup` function:
-    ```
+    ```python
     from hackathon.models.linear import model_setup as linear_model
 
     model_funs = [linear_model]
