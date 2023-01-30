@@ -244,7 +244,7 @@ class TSData(Dataset):
         sensitivities: Tensor or list[Tensor]
             If a Tensor is passed, num_targets must be 1. Else, list elements correspond to targets.
             Each list element has shape
-                - (batch_size, *1461, seq_len, num_features)
+                - (batch_size, *30, seq_len, num_features)
         data_sel: dict[str, Any]
             The dictionary which is returned by the dataloader, containing location and time
             slices to assign the predictions to the right coordinates.
@@ -284,9 +284,9 @@ class TSData(Dataset):
                     f'`sensitivities` elements must be Tensors, is `{type(sens).__name__}`.'
                 )
             _, num_context, num_time, num_vars = sens.shape
-            if not num_context == 1461:
+            if not num_context == 30:
                 raise ValueError(
-                    f'The sensitivities second dimension must have a length of 1461, is {num_context}.'
+                    f'The sensitivities second dimension must have a length of 30, is {num_context}.'
                 )
             if num_vars != self.num_features:
                 raise ValueError(

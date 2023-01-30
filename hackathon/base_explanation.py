@@ -19,10 +19,10 @@ class BaseExplainer(object):
     > You may first calculate the full sensitivities and derive the other return items from that.
         For sensitivities, we speak about sensitivity of a target *towards* a feature. We store the
         sensitivity of the last four years of the test data towards all time steps of the features.
-        Make sure that you follow this patter; For each of the last four years days (= 1461 values),
-        calculate the sensitivity towards each time step. This yields a sensitivity tensor of
-        - 1461 x num_time x num_features for each batch element, or
-        - num_batch x 1461 x num_time x num_features in total.
+        Make sure that you follow this patter; For the past 30 days calculate the sensitivity towards
+        each time step. This yields a sensitivity tensor of
+        - 30 x num_time x num_features for each batch element, or
+        - num_batch x 30 x num_time x num_features in total.
     > The sensitivity tensor can be assigned to a xr.Dataset by using the
         `test_dataloader.dataset.assign_sensitivities(sensitivities=..., data_sel=batch['data_sel'])` method.
     > After having assigned all sensitivities, the xarray.Dataset with the stored values is accessible via

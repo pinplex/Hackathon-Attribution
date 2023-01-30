@@ -27,8 +27,8 @@ class TestExplainer(BaseExplainer):
 
             # Calculate sensitivities. Result must be of shape.
             # Create dummy data of shape:
-            # batch_size (1) x context_size (1461) x seq_len x num_features (8)
-            sensitivities = torch.randn(batch['y'].shape[0], 1461, batch['y'].shape[1], 8)
+            # batch_size (1) x context_size (30) x seq_len x num_features (8)
+            sensitivities = torch.randn(batch['y'].shape[0], 30, batch['y'].shape[1], 8)
 
             # Assign sensitivities to xr.Dataset.
             dataset.assign_sensitivities(
