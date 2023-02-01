@@ -90,12 +90,10 @@ class TSData(Dataset):
 
         # Create empty sensitivity dataset
         if self.add_sensitivity_ds:
-            test_years = np.unique(self.ds.time.dt.year)
-            if len(test_years) < 4:
+            if len(self.ds.time) < 30:
                 raise ValueError(
-                    'test dataset too short to calculate sensitivities (minimum 4 years).'
+                    'test dataset too short to calculate sensitivities (minimum 30 days).'
                 )
-            time_slice = slice(str(test_years[-4]), str(test_years[-1]))
             dummy_arr = xr.DataArray(
                 dims=('context_lag', 'time'),
                 coords=(np.arange(29, -1, -1), self.ds.time.values)
@@ -109,7 +107,6 @@ class TSData(Dataset):
                 self.sensitivities[target + '_sens'] = dummy_arr.copy()
         else:
             self.sensitivities = None
-        print(self.sensitivities)
         self._check_args()
 
         time_coords = TSData._get_time_slices(
