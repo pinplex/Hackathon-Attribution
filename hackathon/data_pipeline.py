@@ -38,7 +38,7 @@ class TSData(Dataset):
         years with additional temporal context of `ts_context_size` years. While the time dimension is sampled with the
         window scheme, each location is considered a separate sample. This gives num_windows x num_locations samples.
         Use `ts_window_size=-1` to not subset the time dimension (but additional context of `ts_context_size` years will
-         still) be used and dropped and may be dropped from predictions.
+        still be used and dropped and may be dropped from predictions).
 
         This is the chunking for 6 years of data with `ts_context_size=1` and `ts_window_size=2`, 'w' for warmup and 'p'
         for prediction::
@@ -97,8 +97,8 @@ class TSData(Dataset):
                 )
             time_slice = slice(str(test_years[-4]), str(test_years[-1]))
             dummy_arr = xr.DataArray(
-                dims=('time', 'context_time'),
-                coords=(self.ds.sel(time=time_slice).time.values, self.ds.time.values)
+                dims=('context_lag', 'time'),
+                coords=(np.arange(29, -1, -1), self.ds.time.values)
             ).expand_dims(
                 location=self.ds.location.values, axis=-1
             ).expand_dims(
@@ -109,7 +109,7 @@ class TSData(Dataset):
                 self.sensitivities[target + '_sens'] = dummy_arr.copy()
         else:
             self.sensitivities = None
-
+        print(self.sensitivities)
         self._check_args()
 
         time_coords = TSData._get_time_slices(
