@@ -27,7 +27,7 @@ class IntegratedGradientsExplainer(BaseExplainer):
     def __init__(self, n_step: int = 50,
                  baseline_fn: Callable[[dict[str, Any]], Optional[torch.Tensor]] = zeros_baseline,
                  pbar_loops: bool = False,
-                 n_sensitivity_days: int = 1461,
+                 n_sensitivity_days: int = 30,
                  co2_idx: int = 7):
         super(IntegratedGradientsExplainer, self).__init__()
         assert n_step >= 0, 'n_step must be positive or zero.'
