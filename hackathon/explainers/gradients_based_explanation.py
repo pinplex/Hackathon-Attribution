@@ -24,7 +24,7 @@ def randn_baseline(std: float = 1) -> Callable[[dict[str, Any]], torch.Tensor]:
 
 class IntegratedGradientsExplainer(BaseExplainer):
 
-    def __init__(self, n_step: int = 50,
+    def __init__(self, n_step: int = 20,
                  baseline_fn: Callable[[dict[str, Any]], Optional[torch.Tensor]] = zeros_baseline,
                  pbar_loops: bool = False,
                  n_sensitivity_days: int = 30,
