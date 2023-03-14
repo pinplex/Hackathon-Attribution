@@ -434,6 +434,7 @@ class DataModule(pl.LightningDataModule):
             train_subset: dict[str, Any],
             valid_subset: dict[str, Any],
             test_subset: Optional[dict[str, Any]] = None,
+            xai_subset: Optional[dict[str, Any]] = None,
             window_size: int = 10,
             context_size: int = 1,
             load_data: bool = True,
@@ -470,6 +471,8 @@ class DataModule(pl.LightningDataModule):
             Same as 'training_subset' for validations set.
         test_subset: dict[str, Any]
             Same as 'training_subset' for test set.
+        xai_subset: dict[str, Any]
+            Same as 'training_subset' for xai set.
         window_size: int
             The window size in years used for training. For validation and test, the full sequence is
             used (also see `context size`).
@@ -498,6 +501,7 @@ class DataModule(pl.LightningDataModule):
         self.train_subset = train_subset
         self.valid_subset = valid_subset
         self.test_subset = test_subset
+        self.xai_subset = xai_subset
 
         self.window_size = window_size
         self.context_size = context_size
@@ -552,6 +556,14 @@ class DataModule(pl.LightningDataModule):
 
     def predict_dataloader(self) -> DataLoader:
         return self.test_dataloader()
+
+    def xai_dataloader(self) -> DataLoader:
+        """Return the xai dataloader."""
+        return self._create_dataloader(
+            self.xai_subset,
+            shuffle=False,
+            return_full_seq=True,
+            add_sensitivity_ds=True)
 
     def _create_dataloader(
             self,

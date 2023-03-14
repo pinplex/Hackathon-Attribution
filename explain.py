@@ -6,7 +6,8 @@ import shutil
 from tqdm import tqdm
 
 from hackathon.model_runner import ModelRunner
-from hackathon.explainers.test_explainer import TestExplainer
+# from hackathon.explainers.test_explainer import TestExplainer
+from hackathon.explainers.gradients_based_explanation import InputXGradExplainer
 from hackathon.base_model import BaseModel
 # from hackathon.models.attn import MultiheadAttn as attn_model
 # from hackathon.models.Conv1D import Conv1D as conv1d_model
@@ -27,7 +28,7 @@ model_funs = [
 ]
 
 explainers = [
-    TestExplainer()
+    InputXGradExplainer()
 ]
 
 
@@ -46,7 +47,7 @@ def main(args: Namespace):
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
 
         model = torch.load(checkpoint_path)
-        val_dataloader = runner.data_setup(fold=-1).val_dataloader()
+        val_dataloader = runner.data_setup(fold=-1).xai_dataloader()
 
         pbar0.set_description(f'Model     {"<"+model_name+">":>30}')
 

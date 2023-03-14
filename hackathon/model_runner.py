@@ -149,6 +149,7 @@ class ModelRunner(object):
 
         train_time = slice('1850', '1855') if self.quickrun else slice('1850', '2004')
         valid_time = slice('2005', '2010') if self.quickrun else slice('2005', '2014')
+        xai_time = slice('2013', '2014')
 
         if fold == -1:
             train_sel = {
@@ -158,6 +159,10 @@ class ModelRunner(object):
             valid_sel = {
                 'location': [1] if self.quickrun else [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                 'time': valid_time
+            }
+            xai_sel = {
+                'location': [1] if self.quickrun else [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                'time': xai_time
             }
         else:
             train_locs, valid_locs = self.get_cv_loc_split(fold)
@@ -169,6 +174,10 @@ class ModelRunner(object):
                 'location': [(fold + 2) % 10] if self.quickrun else valid_locs,
                 'time': valid_time
             }
+            xai_sel = {
+                'location': [(fold + 2) % 10] if self.quickrun else valid_locs,
+                'time': xai_time
+            }
 
         datamodule = DataModule(
             # You may keep these:
@@ -179,6 +188,7 @@ class ModelRunner(object):
             train_subset=custom_test_sel if custom_test_sel else train_sel,
             valid_subset=custom_test_sel if custom_test_sel else valid_sel,
             test_subset=custom_test_sel if custom_test_sel else valid_sel,
+            xai_subset=xai_sel,
             window_size=3,
             context_size=1,
             test_only=custom_test_sel is not None,
