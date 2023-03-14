@@ -479,7 +479,7 @@ class DataModule(pl.LightningDataModule):
         load_data: bool (default is `True`)
             If 'True', data is loaded into memory.
         test_only: bool (default is `False`)
-            If set to `True`, only th test loader can be retreived. This is a security measure
+            If set to `True`, only the test loader can be retreived. This is a security measure
             to avoid training on the test set in inference model (with new data).
         dtype: str (default is 'float32')
             The numeric data type to return.
