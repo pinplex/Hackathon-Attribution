@@ -129,7 +129,6 @@ class ModelRunner(object):
             self,
             fold: int,
             custom_test_sel: Optional[dict[str, Any]] = None,
-            short_xai_setup: bool = False,
             **kwargs) -> pl.LightningDataModule:
         """Setup datamodule of class pl.LightningDataModule with a given cross validation fold.
 
@@ -141,9 +140,6 @@ class ModelRunner(object):
         custom_test_sel: a custom test set selection for use with new data (i.e., for
             inference only). The selection us used with xarray `sel(**custom_test_sel)`.
             E.g., `data_setup(custom_test_sel={'time': slice('2014', '2015')})`.
-        short_xai_setup: if `True` a short validation loader is created with only two
-            years (2013 to 2014).
-
         kwargs: Are passed to the DataModule.
 
         Returns
@@ -152,13 +148,7 @@ class ModelRunner(object):
         """
 
         train_time = slice('1850', '1855') if self.quickrun else slice('1850', '2004')
-        if self.quickrun:
-            valid_time = slice('2005', '2010')
-        else:
-            if short_xai_setup:
-                slice('2013', '2014')
-            else:
-                slice('2005', '2014')
+        valid_time = slice('2005', '2010') if self.quickrun else slice('2005', '2014')
 
         if fold == -1:
             train_sel = {
