@@ -27,38 +27,37 @@ class SimpleMLP(BaseModel):
         **kwargs,
     ):
         super(SimpleMLP, self).__init__(**kwargs)
-        
 
         self.mod1layer1 = torch.nn.Conv1d(
-            in_channels = num_features,
-            out_channels = 32,
-            kernel_size = 30
+            in_channels=num_features,
+            out_channels=32,
+            kernel_size=receptive_field
         )
         self.relu = torch.nn.ReLU()
-        
+
         self.mod1layer2 = torch.nn.Conv1d(
-            in_channels = 32,
-            out_channels = 16,
-            kernel_size = 1
+            in_channels=32,
+            out_channels=16,
+            kernel_size=1
         )
-        
+
         self.mod1layer3 = torch.nn.Conv1d(
-            in_channels = 16,
-            out_channels = 8,
-            kernel_size = 1
+            in_channels=16,
+            out_channels=8,
+            kernel_size=1
         )
+
         self.mod1layer4 = torch.nn.Conv1d(
-            in_channels = 8,
-            out_channels = 4,
-            kernel_size = 1
+            in_channels=8,
+            out_channels=4,
+            kernel_size=1
         )
+
         self.mod1layer5 = torch.nn.Conv1d(
-            in_channels = 4,
-            out_channels = num_targets,
-            kernel_size = 1
+            in_channels=4,
+            out_channels=num_targets,
+            kernel_size=1
         )
-
-
 
     def forward(self, in_features: Tensor) -> Tensor:
         """
@@ -79,9 +78,9 @@ class SimpleMLP(BaseModel):
         x = self.relu(x)
         x = self.mod1layer5(x)
 
-
         x = torch.transpose(x, -1, -2)
         return x
+
 
 def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
     """Create a model as subclass of hackathon.base_model.BaseModel.
@@ -98,10 +97,10 @@ def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
     model = SimpleMLP(
         num_features=8,
         num_targets=1,
-        receptive_field = 30,
+        receptive_field=30,
         learning_rate=3e-4,
         weight_decay=1e-5,
-        norm_stats = norm_stats
+        norm_stats=norm_stats
     )
 
     return model
