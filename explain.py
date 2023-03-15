@@ -7,28 +7,32 @@ from tqdm import tqdm
 
 from hackathon.model_runner import ModelRunner
 # from hackathon.explainers.test_explainer import TestExplainer
-from hackathon.explainers.gradients_based_explanation import InputXGradExplainer
+from hackathon.explainers.gradients_based_explanation import InputXGradExplainer, IntegratedGradientsExplainer
 from hackathon.base_model import BaseModel
 # from hackathon.models.attn import MultiheadAttn as attn_model
 # from hackathon.models.Conv1D import Conv1D as conv1d_model
 from hackathon.models.linear import Linear as linear_model
-# from hackathon.models.LSTM import LSTM as lstm_model
+from hackathon.models.LSTM import LSTM as lstm_model
 # from hackathon.models.multimodel import EfficiencyModel as efficiency_model
 # from hackathon.models.resnet import ResNetModule as resnet_model
 # from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
 
+# Needed to run LSTM backpropagation in eval mode.
+torch.backends.cudnn.enabled=False
+
+
 model_funs = [
     # attn_model,
     # conv1d_model,
-    linear_model,
-    # lstm_model,
+    # linear_model,
+    lstm_model,
     # efficiency_model,
     # resnet_model,
     # simplemlp_model
 ]
 
 explainers = [
-    InputXGradExplainer()
+    IntegratedGradientsExplainer(pbar_loops=True, n_step=2)
 ]
 
 
@@ -47,7 +51,7 @@ def main(args: Namespace):
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
 
         model = torch.load(checkpoint_path)
-        val_dataloader = runner.data_setup(fold=-1).xai_dataloader()
+        val_dataloader = runner.data_setup(fold=-1, batch_size=10).xai_dataloader()
 
         pbar0.set_description(f'Model     {"<"+model_name+">":>30}')
 
