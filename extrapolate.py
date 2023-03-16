@@ -11,18 +11,14 @@ from hackathon.models.attn import MultiheadAttn as attn_model
 from hackathon.models.Conv1D import Conv1D as conv1d_model
 from hackathon.models.linear import Linear as linear_model
 from hackathon.models.LSTM import LSTM as lstm_model
-from hackathon.models.multimodel import EfficiencyModel as efficiency_model
-from hackathon.models.resnet import ResNetModule as resnet_model
 from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
 
 model_funs = [
     attn_model,
-    #conv1d_model,
-    #linear_model,
-    #lstm_model,
-    #efficiency_model,
-    #resnet_model,
-    #simplemlp_model
+    conv1d_model,
+    linear_model,
+    lstm_model,
+    simplemlp_model
 ]
 
 
