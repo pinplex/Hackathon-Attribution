@@ -28,6 +28,8 @@ class SimpleMLP(BaseModel):
     ):
         super(SimpleMLP, self).__init__(**kwargs)
 
+        self.context_pad = torch.nn.ConstantPad1d((receptive_field - 1, 0), 0.0)
+
         self.mod1layer1 = torch.nn.Conv1d(
             in_channels=num_features,
             out_channels=32,
@@ -68,7 +70,8 @@ class SimpleMLP(BaseModel):
         """
 
         in_features = torch.transpose(in_features, -1, -2)
-        x = self.mod1layer1(in_features)
+        in_features_pad = self.context_pad(in_features)
+        x = self.mod1layer1(in_features_pad)
         x = self.relu(x)
         x = self.mod1layer2(x)
         x = self.relu(x)
