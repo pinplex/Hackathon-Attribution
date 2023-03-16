@@ -7,39 +7,37 @@ from tqdm import tqdm
 
 from hackathon.model_runner import ModelRunner
 # from hackathon.explainers.test_explainer import TestExplainer
-from hackathon.explainers.gradients_based_explanation import InputXGradExplainer, IntegratedGradientsExplainer
+from hackathon.explainers.gradients_based_explanation import \
+    GradExplainer, InputXGradExplainer, IntegratedGradientsExplainer
+
 from hackathon.base_model import BaseModel
-# from hackathon.models.attn import MultiheadAttn as attn_model
-# from hackathon.models.Conv1D import Conv1D as conv1d_model
+from hackathon.models.attn import MultiheadAttn as attn_model
 from hackathon.models.linear import Linear as linear_model
 from hackathon.models.LSTM import LSTM as lstm_model
-# from hackathon.models.multimodel import EfficiencyModel as efficiency_model
-# from hackathon.models.resnet import ResNetModule as resnet_model
-# from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
+from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
 
 # Needed to run LSTM backpropagation in eval mode.
-torch.backends.cudnn.enabled=False
+torch.backends.cudnn.enabled = False
 
 
 model_funs = [
-    # attn_model,
-    # conv1d_model,
-    # linear_model,
+    attn_model,
+    linear_model,
     lstm_model,
-    # efficiency_model,
-    # resnet_model,
-    # simplemlp_model
+    simplemlp_model
 ]
 
 explainers = [
-    IntegratedGradientsExplainer(pbar_loops=True, n_step=2)
+    GradExplainer(pbar_loops=True),
+    InputXGradExplainer(pbar_loops=True),
+    IntegratedGradientsExplainer(pbar_loops=True, n_step=20),
 ]
 
 
 def main(args: Namespace):
     model: BaseModel
 
-    print('\n+++ Explanations are saved to `./hackathon/logs/<model_name>/expl/<explainer_name>/explanations.nc>`+++\n')
+    print('\n+++ Explanations are saved to `./hackathon/logs/<model_name>/expl/<explainer_name>/explanations.nc`+++\n')
 
     for model in (pbar0 := tqdm(model_funs)):
         model_name = model.__module__.split('.')[-1].lower()
@@ -51,7 +49,7 @@ def main(args: Namespace):
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
 
         model = torch.load(checkpoint_path)
-        val_dataloader = runner.data_setup(fold=-1, batch_size=10).xai_dataloader()
+        val_dataloader = runner.data_setup(fold=-1, batch_size=1).xai_dataloader()
 
         pbar0.set_description(f'Model     {"<"+model_name+">":>30}')
 
