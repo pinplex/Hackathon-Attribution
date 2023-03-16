@@ -10,13 +10,13 @@ import json
 from hackathon.model_runner import ModelRunner
 
 from hackathon.models.attn import model_setup as attn_model
-from hackathon.models.linear import model_setup as linear_model
 
 model_funs = [attn_model]
 
+
 def main(args: Namespace):
     for model_fn in model_funs:
-        
+
         model_name = model_fn.__module__.split('.')[-1]
         log_dir = f'./hackathon/logs/{model_name}/xval'
         if os.path.isdir(log_dir):
@@ -40,11 +40,12 @@ def main(args: Namespace):
             datamodule=datamodule,
             version='final')
 
+
 def tune(args: Namespace):
     search_space = {
         'd_model': [8, 16, 32],
         'num_head': [1, 2, 4],
-        'num_hidden': [32, 64],
+        'num_hidden': [16, 32, 64],
         'num_layers': [1, 2, 3],
         'dropout': [0.0, 0.15, 0.3],
         'learning_rate': [1e-4, 1e-3, 1e-2],
