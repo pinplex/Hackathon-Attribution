@@ -100,7 +100,7 @@ class IntegratedGradientsExplainer(BaseExplainer):
 
         return grads_dataset, inp_x_grads_dataset
 
-    def _compute_ig_for_batch(self, model: Ensemble, batch: dict[str, Any]) -> (np.ndarray, np.ndarray, torch.Tensor):
+    def _compute_ig_for_batch(self, model: Ensemble, batch: dict[str, Any]) -> tuple[np.ndarray, np.ndarray, torch.Tensor]:
         ig_res_batch = list()
         ig_x_inp_res_batch = list()
         y_hat_list_batch = list()
