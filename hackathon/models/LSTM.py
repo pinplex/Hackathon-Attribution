@@ -19,14 +19,19 @@ class LSTM(BaseModel):
     :type num_hidden: Integer
     """
 
-
-    def __init__(self,num_features: int, num_targets: int,num_hidden: int, num_layers:int, **kwargs) -> None:
+    def __init__(
+            self,
+            num_features: int,
+            num_targets: int,
+            num_hidden: int,
+            num_layers: int,
+            **kwargs) -> None:
         super(LSTM, self).__init__(**kwargs)
 
-        self.lstm = torch.nn.LSTM(input_size=num_features, hidden_size=num_hidden, num_layers=num_layers, batch_first=True)
+        self.lstm = torch.nn.LSTM(
+            input_size=num_features, hidden_size=num_hidden, num_layers=num_layers, batch_first=True)
 
-        self.linear =torch.nn.Linear(in_features=num_hidden, out_features=num_targets)
-
+        self.linear = torch.nn.Linear(in_features=num_hidden, out_features=num_targets)
 
     def forward(self, x: Tensor) -> Tensor:
         out, _ = self.lstm(x)
@@ -49,14 +54,13 @@ def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
     A model.
     """
     model = LSTM(
-            num_features=8,
-            num_targets=1,
-            num_hidden= 128,
-            num_layers=2,
-            learning_rate=0.01,
-            weight_decay=0,
-            norm_stats=norm_stats
+        num_features=8,
+        num_targets=1,
+        num_hidden=128,
+        num_layers=2,
+        learning_rate=0.01,
+        weight_decay=0,
+        norm_stats=norm_stats
     )
 
     return model
-
