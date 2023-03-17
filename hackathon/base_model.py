@@ -1,6 +1,5 @@
 import torch
 import pytorch_lightning as pl
-import xarray as xr
 
 from typing import Any, Union, Optional, Tuple
 from torch import Tensor
@@ -8,7 +7,7 @@ from torch import Tensor
 
 class BaseModel(pl.LightningModule):
     """Implements a base model.
-    
+
     Meant to be subclassed.
 
     Note that the prediction step (i.e., `my_trainer.predict(...)`) automatically
