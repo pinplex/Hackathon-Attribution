@@ -1,5 +1,4 @@
 import os
-from abc import abstractmethod
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -18,7 +17,11 @@ from hackathon.base_model import BaseModel
 class Ensemble(pl.LightningModule):
     """Create model ensemble from multiple pytorch models."""
 
-    def __init__(self, model_type_list: list[type[BaseModel]], checkpoint_path_list: list[str]) -> None:
+    def __init__(
+            self,
+            model_type_list: list[type[BaseModel]],
+            checkpoint_path_list: Optional[list[str]] = None,
+            is_gt_model: bool = False) -> None:
         """Initializes Ensemble.
 
         Parameters
@@ -26,9 +29,16 @@ class Ensemble(pl.LightningModule):
         model_type_list: list[type[BaseModel]]
             A list of models, each a BaseModel.
         checkpoint_path_list: list[str]
-            Alist of the ensemble members weight/checkpoint paths.
+            Alist of the ensemble members weight/checkpoint paths. Only required if
+            `is_gt_model=False`.
+        is_gt_model: bool
+            If `True`, the `model_type_list` contains the gt_model and no checkpoints are loaded.
         """
         super().__init__()
+
+        if is_gt_model:
+            self.models = torch.nn.ModuleList(model_type_list)
+            return
 
         # Directly passing the trained models causes an error (`ReferenceError: weakly-referenced
         # object no longer exists`), that's why we reload the models here.
