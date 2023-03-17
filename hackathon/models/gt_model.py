@@ -78,7 +78,7 @@ class GTmodel(BaseModel):
         gpp = epsilon_max * apar * f_co2 * tmin_scalar * vpd_scalar * swc_scalar * 1000 + self.useless - self.useless
 
         # Add the expected values of the noise
-        pi = torch.acos(torch.zeros(1)) * 2
+        pi = torch.acos(torch.zeros(1, device=gpp.device)) * 2
         noise_mean = 1 / torch.sqrt(2 * pi)
         gpp = gpp + noise_mean
 
