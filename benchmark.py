@@ -20,7 +20,7 @@ model_funs = [
 
 def main(args: Namespace):
     for model_fn in model_funs:
-        
+
         model_name = model_fn.__module__.split('.')[-1].lower()
         log_dir = f'./hackathon/logs/{model_name}/xval'
         if os.path.isdir(log_dir):
