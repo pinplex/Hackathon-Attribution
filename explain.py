@@ -5,12 +5,14 @@ import os
 import shutil
 from tqdm import tqdm
 
-from hackathon.model_runner import ModelRunner
+from hackathon.model_runner import ModelRunner, Ensemble
 # from hackathon.explainers.test_explainer import TestExplainer
 from hackathon.explainers.gradients_based_explanation import \
     GradExplainer, InputXGradExplainer, IntegratedGradientsExplainer
 
 from hackathon.base_model import BaseModel
+from hackathon.models.gt_model import GTmodel as gt_model
+from hackathon.models.gt_model import model_setup as gt_model_setup
 from hackathon.models.attn import MultiheadAttn as attn_model
 from hackathon.models.linear import Linear as linear_model
 from hackathon.models.LSTM import LSTM as lstm_model
@@ -21,6 +23,7 @@ torch.backends.cudnn.enabled = False
 
 
 model_funs = [
+    gt_model,
     attn_model,
     linear_model,
     lstm_model,
@@ -48,7 +51,11 @@ def main(args: Namespace):
 
         runner = ModelRunner(log_dir=log_dir, quickrun=args.quickrun, seed=910)
 
-        model = torch.load(checkpoint_path)
+        if model_name == 'gt_model':
+            model = gt_model_setup({'mean': torch.zeros(8), 'std': torch.zeros(8)})
+            model = Ensemble(model_type_list=[model], is_gt_model=True)
+        else:
+            model = torch.load(checkpoint_path)
         val_dataloader = runner.data_setup(fold=-1, batch_size=1).xai_dataloader()
 
         pbar0.set_description(f'Model     {"<"+model_name+">":>30}')
