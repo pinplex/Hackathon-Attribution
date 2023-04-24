@@ -34,12 +34,20 @@ b = 0.383 # Power-Law
 kind = 'CMIP6' # 'CMIP6' or 'OBS'
 
 # for CMIP6
-simulation = 'ssp585' # 'historical'
+simulation = 'historical+ssp585' # 'historical', 'ssp585'
 ESM = 'MPI-ESM1-2-LR'
+no_CO2_change = True
+sfcWind_constant = False
 
 if kind == 'CMIP6':
     infile = 'data/'+kind+'/predictor-variables_'+simulation+''
     outfile = 'data/'+kind+'/predictor-variables_'+simulation+'+'+'GPP'
+
+    if no_CO2_change:
+        outfile = outfile+'_no-CO2-change'
+
+    if sfcWind_constant:
+        outfile = outfile+'_non-causal-constant'
     
 else:
     infile = 'data/'+kind+'/predictor-variables'
@@ -159,6 +167,15 @@ if __name__ == "__main__":
     SWRad = ds['ssrd']
     FPAR = ds['FPAR']
     CO2 = ds['co2']
+
+    ## set surface-wind to fixed climatological mean
+    if sfcWind_constant:
+        ds['sfcWind'] = (ds['sfcWind'] * 0 + 1) * ds['sfcWind'].mean(dim=['time', 'location']).values
+
+    ## no CO2 change
+    if no_CO2_change:
+        ds['co2'] = (ds['co2'] * 0 + 1) * ds['co2'].isel(time=0, location=0).values
+        CO2 = ds['co2']
 
     #% calc Soil Moisture based on Precipitation and Evapotranspiration with a surface bucket
     ds['bSWC'] = calc_SWC_bucket(p=ds['tp'], et=ds['e'], S_max=bSWC_size)
