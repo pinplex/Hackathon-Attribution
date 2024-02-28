@@ -221,8 +221,7 @@ class IntegratedGradientsExplainer(BaseExplainer):
 
 class _BaseGradExplainer(IntegratedGradientsExplainer):
     def __init__(self, **kwargs):
-        assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for '
-                                                                          'InpXGradExplainer.')
+        assert len({'baseline_fn', 'n_step'} - set(kwargs.keys())) == 2, ('baseline_fn and n_step can''t be set for InpXGradExplainer.')
         super(_BaseGradExplainer, self).__init__(n_step=0, baseline_fn=lambda batch: None, **kwargs)
 
 
