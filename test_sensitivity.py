@@ -13,22 +13,22 @@ from hackathon.models.LSTM import LSTM as lstm_model
 from hackathon.models.multimodel import EfficiencyModel as efficiency_model
 from hackathon.models.resnet import ResNetModule as resnet_model
 from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
+from hackathon.models.attn_nores import MultiheadAttnNoRes as attn_nores_model
 
 model_funs = [ # uncomment models you like to process
     #attn_model,
     #conv1d_model,
     #linear_model,
     #lstm_model,
-    efficiency_model,
-    #resnet_model,
-    #simplemlp_model
+    #simplemlp_model,
+    attn_nores_model
 ]
 
 
 def main(args: Namespace):
     model: BaseModel
 
-    print('\n+++ Predictions are saved to `./hackathon/logs/<model_name>/sensitivity/<CO2|causal>/explanations.nc>`+++\n')
+    print('\n+++ Predictions are saved to `./hackathon/logs/<model_name>/sensitivity/<CO2|causal>/predictions.nc>`+++\n')
 
     for model in (pbar0 := tqdm(model_funs)):
         model_name = model.__module__.split('.')[-1].lower()
