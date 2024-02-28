@@ -1,0 +1,1002 @@
+{
+    "trial_000": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 1.0232410430908203
+    },
+    "trial_001": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.5852841138839722
+    },
+    "trial_002": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 3.385514736175537
+    },
+    "trial_003": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 0.8644358515739441
+    },
+    "trial_004": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.3594757318496704
+    },
+    "trial_005": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.5253944396972656
+    },
+    "trial_006": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 0.9893850088119507
+    },
+    "trial_007": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.8271979093551636
+    },
+    "trial_008": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 1.6697046756744385
+    },
+    "trial_009": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.090433359146118
+    },
+    "trial_010": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.6855146884918213
+    },
+    "trial_011": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.682876467704773
+    },
+    "trial_012": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.7977104187011719
+    },
+    "trial_013": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.508824586868286
+    },
+    "trial_014": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 3.589451551437378
+    },
+    "trial_015": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 2.224033832550049
+    },
+    "trial_016": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.235927700996399
+    },
+    "trial_017": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 2.586848258972168
+    },
+    "trial_018": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 4.893397808074951
+    },
+    "trial_019": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 3.9339728355407715
+    },
+    "trial_020": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.9735060930252075
+    },
+    "trial_021": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 4.164445877075195
+    },
+    "trial_022": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.7087502479553223
+    },
+    "trial_023": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 2.113463878631592
+    },
+    "trial_024": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 2.41914701461792
+    },
+    "trial_025": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 1.1170872449874878
+    },
+    "trial_026": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.5296536684036255
+    },
+    "trial_027": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 4.151099681854248
+    },
+    "trial_028": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 3.288735866546631
+    },
+    "trial_029": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.1705223321914673
+    },
+    "trial_030": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 2.95721173286438
+    },
+    "trial_031": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.6855955123901367
+    },
+    "trial_032": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 2.425877809524536
+    },
+    "trial_033": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 3.3863677978515625
+    },
+    "trial_034": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.955244302749634
+    },
+    "trial_035": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.4572020769119263
+    },
+    "trial_036": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.8834275007247925
+    },
+    "trial_037": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.0267200469970703
+    },
+    "trial_038": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 3.113311767578125
+    },
+    "trial_039": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 2.1519503593444824
+    },
+    "trial_040": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.79858136177063
+    },
+    "trial_041": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.9481688737869263
+    },
+    "trial_042": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 5.945883750915527
+    },
+    "trial_043": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.4054588079452515
+    },
+    "trial_044": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 1.3789805173873901
+    },
+    "trial_045": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.916491985321045
+    },
+    "trial_046": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 2.282086133956909
+    },
+    "trial_047": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.875651240348816
+    },
+    "trial_048": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 4.573733329772949
+    },
+    "trial_049": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.089282989501953
+    },
+    "trial_050": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 1.0586262941360474
+    },
+    "trial_051": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 3.7288906574249268
+    },
+    "trial_052": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.3945223093032837
+    },
+    "trial_053": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.3056467771530151
+    },
+    "trial_054": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 4.532118797302246
+    },
+    "trial_055": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 2.781006097793579
+    },
+    "trial_056": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 3.8551621437072754
+    },
+    "trial_057": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 4.2565107345581055
+    },
+    "trial_058": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 3.674534797668457
+    },
+    "trial_059": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 4.095386028289795
+    },
+    "trial_060": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.5211750268936157
+    },
+    "trial_061": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 3.388489246368408
+    },
+    "trial_062": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.9139872789382935
+    },
+    "trial_063": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 7.032232761383057
+    },
+    "trial_064": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 1.7001011371612549
+    },
+    "trial_065": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 1.7092591524124146
+    },
+    "trial_066": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 1.972525954246521
+    },
+    "trial_067": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 2.678267240524292
+    },
+    "trial_068": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 3.1333467960357666
+    },
+    "trial_069": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.3731689453125
+    },
+    "trial_070": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 0.8155893683433533
+    },
+    "trial_071": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.9317407608032227
+    },
+    "trial_072": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 2.603940725326538
+    },
+    "trial_073": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 3.4040472507476807
+    },
+    "trial_074": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.5250524282455444
+    },
+    "trial_075": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 3.8523402214050293
+    },
+    "trial_076": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 4.590832233428955
+    },
+    "trial_077": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 1.101991891860962
+    },
+    "trial_078": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 0.7605090737342834
+    },
+    "trial_079": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 1.823901653289795
+    },
+    "trial_080": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.5852773189544678
+    },
+    "trial_081": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 1,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 1.6943771839141846
+    },
+    "trial_082": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 3.1739494800567627
+    },
+    "trial_083": {
+        "d_model": 16,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "test_loss": 1.692861557006836
+    },
+    "trial_084": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 1.347631812095642
+    },
+    "trial_085": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.7962355613708496
+    },
+    "trial_086": {
+        "d_model": 16,
+        "num_head": 2,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 1.378028392791748
+    },
+    "trial_087": {
+        "d_model": 8,
+        "num_head": 1,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 1.8483155965805054
+    },
+    "trial_088": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.001,
+        "test_loss": 1.6900365352630615
+    },
+    "trial_089": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.01,
+        "weight_decay": 0.01,
+        "test_loss": 3.557870626449585
+    },
+    "trial_090": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 64,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 1.7580599784851074
+    },
+    "trial_091": {
+        "d_model": 32,
+        "num_head": 2,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 6.5164899826049805
+    },
+    "trial_092": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.2152347564697266
+    },
+    "trial_093": {
+        "d_model": 32,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.0001,
+        "test_loss": 2.0035603046417236
+    },
+    "trial_094": {
+        "d_model": 8,
+        "num_head": 2,
+        "num_hidden": 16,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 1.6449629068374634
+    },
+    "trial_095": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "test_loss": 3.132889747619629
+    },
+    "trial_096": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 64,
+        "num_layers": 3,
+        "dropout": 0.3,
+        "learning_rate": 0.01,
+        "weight_decay": 0.001,
+        "test_loss": 1.8922852277755737
+    },
+    "trial_097": {
+        "d_model": 8,
+        "num_head": 4,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.15,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "test_loss": 2.2680327892303467
+    },
+    "trial_098": {
+        "d_model": 32,
+        "num_head": 1,
+        "num_hidden": 16,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "test_loss": 2.2063517570495605
+    },
+    "trial_099": {
+        "d_model": 16,
+        "num_head": 4,
+        "num_hidden": 32,
+        "num_layers": 3,
+        "dropout": 0.0,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "test_loss": 3.2962985038757324
+    }
+}
