@@ -82,7 +82,7 @@ class GTmodel(BaseModel):
         noise_mean = 1 / torch.sqrt(2 * pi)
         gpp = gpp + noise_mean
 
-        return gpp
+        return gpp + 0 * sfcwind
 
 
 def model_setup(norm_stats: dict[str, Tensor]) -> BaseModel:
