@@ -7,16 +7,16 @@ from tqdm import tqdm
 
 from hackathon.model_runner import ModelRunner
 from hackathon.base_model import BaseModel
-from hackathon.models.attn import MultiheadAttn as attn_model
+from hackathon.models.attn_nores import MultiheadAttnNoRes as attn_model
 from hackathon.models.Conv1D import Conv1D as conv1d_model
 from hackathon.models.linear import Linear as linear_model
 from hackathon.models.LSTM import LSTM as lstm_model
 from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
 
 model_funs = [
+    linear_model,
     attn_model,
     conv1d_model,
-    linear_model,
     lstm_model,
     simplemlp_model
 ]

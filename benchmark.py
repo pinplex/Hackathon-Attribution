@@ -5,16 +5,18 @@ from argparse import ArgumentParser, Namespace
 
 from hackathon.model_runner import ModelRunner
 
-from hackathon.models.attn import model_setup as attn_model
+from hackathon.models.attn_nores import model_setup as attn_model
 from hackathon.models.Conv1D import model_setup as conv1d_model
 from hackathon.models.linear import model_setup as linear_model
 from hackathon.models.LSTM import model_setup as lstm_model
+from hackathon.models.simplemlp import model_setup as simplemlp_model
 
 model_funs = [
+    linear_model,
     attn_model,
     conv1d_model,
-    linear_model,
     lstm_model,
+    simplemlp_model,
 ]
 
 

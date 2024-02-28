@@ -9,7 +9,7 @@ import json
 
 from hackathon.model_runner import ModelRunner
 
-from hackathon.models.attn import model_setup as attn_model
+from hackathon.models.attn_nores import model_setup as attn_model
 
 model_funs = [attn_model]
 

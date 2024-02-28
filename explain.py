@@ -13,7 +13,7 @@ from hackathon.explainers.gradients_based_explanation import \
 from hackathon.base_model import BaseModel
 from hackathon.models.gt_model import GTmodel as gt_model
 from hackathon.models.gt_model import model_setup as gt_model_setup
-from hackathon.models.attn import MultiheadAttn as attn_model
+from hackathon.models.attn_nores import MultiheadAttnNoRes as attn_model
 from hackathon.models.linear import Linear as linear_model
 from hackathon.models.LSTM import LSTM as lstm_model
 from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
@@ -21,14 +21,14 @@ from hackathon.models.simplemlp import SimpleMLP as simplemlp_model
 # Needed to run LSTM backpropagation in eval mode.
 torch.backends.cudnn.enabled = False
 
-
 model_funs = [
     gt_model,
-    attn_model,
     linear_model,
+    attn_model,
     lstm_model,
     simplemlp_model
 ]
+
 
 explainers = [
     GradExplainer(pbar_loops=True),
