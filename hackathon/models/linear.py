@@ -10,10 +10,10 @@ class Linear(BaseModel):
         super(Linear, self).__init__(**kwargs)
 
         self.linear = torch.nn.Linear(num_features, num_targets)
-        self.softplus = torch.nn.Softplus()
+        self.relu = torch.nn.ReLU()
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.softplus(self.linear(x))
+        out = self.relu(self.linear(x))
         return out
 
 
