@@ -57,7 +57,7 @@ class PositionalEncoding(nn.Module):
             self,
             d_model: int,
             dropout: float = 0.1,
-            max_len: int = 70000,
+            max_len: int = 100000,
             n: int = 365 * 50):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
@@ -69,6 +69,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe.permute(1, 0, 2))
         self.pe: Tensor
+        raise ValueError(msg = self.pe.shape)
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -78,7 +79,9 @@ class PositionalEncoding(nn.Module):
         Returns:
             Tensor, shape [batch_dim, seq_len, embedding_dim].
         """
-
+        
+        print(x.shape)
+        print(self.pe.shape)
         out = x + self.pe[:, :x.size(1), :]
         return self.dropout(out)
 
@@ -133,7 +136,7 @@ class MultiheadAttnNoRes(BaseModel):
 
         self.input_encoder = nn.Linear(in_features=num_inputs, out_features=d_model)
 
-        self.pos_encoder = PositionalEncoding(d_model=d_model, dropout=dropout)
+        self.pos_encoder = PositionalEncoding(d_model=d_model, max_len = 100000, dropout=dropout)
 
         self.unfold_and_reshape = UnfoldToContextLength(context_len=context_len)
 
@@ -256,6 +259,9 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
         norm_stats=norm_stats,
         **default_params
     )
+
+    print(' ... ')
+    exit()
 
     return model
 
