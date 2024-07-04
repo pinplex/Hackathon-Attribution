@@ -46,7 +46,7 @@ def main(args: Namespace):
             log_dir=log_dir,
             quickrun=args.quickrun,
             seed=910,
-            data_dir='./simple_gpp_model/data/CMIP6/predictor-variables_historical+ssp585+GPP__non-causal-constant.nc')
+            data_dir='./simple_gpp_model/data/CMIP6/predictor-variables_historical+ssp585+GPP_non-causal-constant.nc')
 
         model = torch.load(checkpoint_path)
 

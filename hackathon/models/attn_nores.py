@@ -69,7 +69,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe.permute(1, 0, 2))
         self.pe: Tensor
-        raise ValueError(msg = self.pe.shape)
+
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -80,8 +80,6 @@ class PositionalEncoding(nn.Module):
             Tensor, shape [batch_dim, seq_len, embedding_dim].
         """
         
-        print(x.shape)
-        print(self.pe.shape)
         out = x + self.pe[:, :x.size(1), :]
         return self.dropout(out)
 
@@ -260,8 +258,6 @@ def model_setup(norm_stats: dict[str, Tensor], **kwargs) -> BaseModel:
         **default_params
     )
 
-    print(' ... ')
-    exit()
 
     return model
 

@@ -12,11 +12,11 @@ from hackathon.models.LSTM import model_setup as lstm_model
 from hackathon.models.simplemlp import model_setup as simplemlp_model
 
 model_funs = [
-    linear_model,
+    #linear_model,
     attn_model,
-    conv1d_model,
-    lstm_model,
-    simplemlp_model,
+    #conv1d_model,
+    #lstm_model,
+    #simplemlp_model,
 ]
 
 
