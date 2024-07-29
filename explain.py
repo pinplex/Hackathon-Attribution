@@ -44,7 +44,7 @@ def main(args: Namespace):
 
     for model in (pbar0 := tqdm(model_funs)):
         model_name = model.__module__.split('.')[-1].lower()
-        log_dir = f'./hackathon/logs/{model_name}/expl'
+        log_dir = f'./hackathon/logs/{model_name}/expl_2004'
         if os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
         checkpoint_path = f'./hackathon/logs/{model_name}/xval/final/final.ckpt'

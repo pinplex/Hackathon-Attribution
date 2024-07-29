@@ -159,7 +159,7 @@ class ModelRunner(object):
 
         train_time = slice('1850', '1855') if self.quickrun else slice('1850', '2004')
         valid_time = slice('2005', '2010') if self.quickrun else slice('2005', '2014')
-        xai_time = slice('2013', '2014')
+        xai_time = slice('2006', '2007') ## 2013,2014
 
         if fold == -1:
             train_sel = {
