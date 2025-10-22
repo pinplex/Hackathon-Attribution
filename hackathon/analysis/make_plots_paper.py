@@ -17,18 +17,28 @@ from glob import glob
 import os
 
 # %% plot settings
-pd.options.display.float_format = '{:,.2f}'.format
+#pd.options.display.float_format = '{:,.2f}'.format
 #sb.set_theme(style='whitegrid', palette='pastel')
-sb.set_context("notebook", rc={"lines.linewidth": 0.6})
-plt.rcParams['figure.dpi'] = 200
-plt.rcParams['savefig.dpi'] = 300
+#sb.set_context("notebook", rc={"lines.linewidth": 0.6})
+#plt.rcParams['figure.dpi'] = 200
+#plt.rcParams['savefig.dpi'] = 300
 
-plt.rcParams['font.size']= 18
+plt.rcParams['font.size'] = 14
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = r'''\usepackage{libertine}
-                                          \usepackage[libertine]{newtxmath}'''
+                                            \usepackage[libertine]{newtxmath}'''
+                                            
+                                          
+colors = [
+        (0.00392156862745098, 0.45098039215686275, 0.6980392156862745),
+        "#ffc300",
+        (0.00784313725490196, 0.6196078431372549, 0.45098039215686275),
+        "#f0004e",
+]
+
+sb.set_palette(colors)
 #%% define paths
-save = True # if plots should be saved
+save = True #False # if plots should be saved
 plt_pth = '../../plots/manuscript/'                                       
 
 # %%
@@ -94,8 +104,10 @@ models = [os.path.basename(d) for d in glob('../logs/*')]
 #models = models[-1]
 print(models)
 #%% exclude gt_model for this part of the analysis
-models.remove('gt_model') #@todo: which other models did we want to exclude
-models.remove('multimodel') #@todo: which other models did we want to exclude
+# models.remove('gt_model') #@todo: which other models did we want to exclude
+# models.remove('multimodel') #@todo: which other models did we want to exclude
+models = ['linear', 'simplemlp', 'lstm', 'attn_nores'] # our choice of models to present
+models_labels = ['Linear', 'Lagged MLP', 'LSTM', 'Attention']
 
 # %%
 ds_CO2 = xr.open_dataset('../logs/linear/sensitivity/CO2/predictions.nc').drop('GPP_hat')
@@ -118,6 +130,7 @@ for data, dirname in zip([ds_CO2, ds_causal, ds_time, ds_space, ds_val], ['CO2',
             dt.append(xr.open_dataset(f'../logs/{model}/sensitivity/{dirname}/predictions.nc')['GPP_hat'])
 
     data['GPP_hat'] = xr.concat(dt, dim='model')
+    data['model'] = models
     
 #%% fix: replace GPP for CO2; rerun sensitvitiy script to get rid off this step
 GPP_obs = xr.open_dataset('../../simple_gpp_model/data/CMIP6/predictor-variables_historical+ssp585+GPP_no-CO2-change.nc')
@@ -130,14 +143,16 @@ ds_time_ym = ds_time.groupby('time.year').mean()
 ds_space_ym = ds_space.groupby('time.year').mean()
 
 #%% Figure 01: make line plot for extrapolation to unseen  site in unseen cluster
-plotfname = plt_pth+'Fig-01_temporal_spatial_extrapolation'
-
 location = 11 #@todo: why do we take location 15?
+plotfname = plt_pth+'Fig-01_temporal_spatial_extrapolation_location-'+str(location)
+
 fig = plt.figure(figsize=(13.5,4.5))
 ax = plt.subplot(121)
+ax.minorticks_on()
 sb.despine()
-ds_space_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
-l1 = plt.legend(models, title='Models', frameon=False, ncol=2)
+ds_space_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', 
+                                                                 ax=ax, lw=2)
+l1 = plt.legend(models_labels, title='Models', frameon=False, ncol=2)
 ds_space_ym['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 xlims = ax.get_xlim()
@@ -145,24 +160,25 @@ ylims = ax.get_ylim()
 
 p1, = plt.plot([0,0], [1,1], c='k', lw=2, ls='--')
 
-l2 = plt.legend([p1], ["Truth"], loc='lower right', frameon=False) # this removes l1 from the axes.
+l2 = plt.legend([p1], ["Ground-truth"], loc='lower right', frameon=False) # this removes l1 from the axes.
 plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
 
 ax.set_xlim(xlims)
 ax.set_ylim(ylims)
 
-plt.title('Spatial extrapolation to unseen site (ensemble median)', fontsize=13, pad=10)
-plt.ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+plt.title('Spatial extrapolation to unseen site (ensemble median)', fontsize=14, pad=10)
+plt.ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 plt.xlabel('Time, yr')
-plt.annotate(r'\textbf{a}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
+plt.annotate(r'\textbf{a}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=18, fontweight="bold")
 #plt.savefig('../../plots/AGU2022/spatial_extrapolation_'+str(location)+'.pdf')
 
 #% make line plot for extrapolation to future climate
 # location = 14
 ax = plt.subplot(122)
+ax.minorticks_on()
 sb.despine()
-ds_time_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=3)
-l1 = plt.legend(models, title='Models', frameon=False, ncol=2)
+ds_time_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
+l1 = plt.legend(models_labels, title='Models', frameon=False, ncol=2)
 ds_time_ym['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 xlims = ax.get_xlim()
@@ -173,13 +189,13 @@ p1, = plt.plot([0,0], [1,1], c='k', lw=2, ls='--')
 ax.set_xlim(xlims)
 ax.set_ylim(ylims)
 
-l2 = plt.legend([p1], ["Truth"], loc='lower center', frameon=False) # this removes l1 from the axes.
+l2 = plt.legend([p1], ["Ground-truth"], loc='center left', frameon=False) # this removes l1 from the axes.
 plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
 
-plt.title('Temporal extrapolation to unseen site \& "future" (ensemble median)', fontsize=13, pad=10)
-plt.ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+plt.title('Temporal extrapolation to unseen site \& "future" (ensemble median)', fontsize=14, pad=10)
+plt.ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 plt.xlabel('Time, yr')
-plt.annotate(r'\textbf{b}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
+plt.annotate(r'\textbf{b}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=18, fontweight="bold")
 
 if save == True:
     plt.savefig(plotfname+'.pdf')
@@ -189,14 +205,16 @@ if save == True:
     os.system('mv '+plotfname+'-crop.pdf '+plotfname+'.pdf')
 
 #%% alternative Figure 01: make line plot for extrapolation to unseen site in unseen cluster
-plotfname = plt_pth+'Fig-01_temporal_spatial_extrapolation_alternative'
 
-location = 11 #@todo: why do we take location 15?
+location = 11 # 13 #@todo: why do we take location 15?; 11 for supplemenatry figure
+plotfname = plt_pth+'Fig-01_temporal_spatial_extrapolation_alternative-'+str(location)
+
 fig = plt.figure(figsize=(13.5,4.5))
 ax = plt.subplot(121)
+ax.minorticks_on()
 sb.despine()
 ds_space_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
-l1 = plt.legend(models, title='Models', frameon=False, ncol=2)
+l1 = plt.legend(models_labels, title='Models', frameon=False, ncol=2)
 ds_space_ym['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 xlims = ax.get_xlim()
@@ -204,14 +222,14 @@ ylims = ax.get_ylim()
 
 p1, = plt.plot([0,0], [1,1], c='k', lw=2, ls='--')
 
-l2 = plt.legend([p1], ["Truth"], loc='lower right', frameon=False) # this removes l1 from the axes.
+l2 = plt.legend([p1], ["Ground-\ntruth"], loc='lower right', frameon=False) # this removes l1 from the axes.
 plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
 
 ax.set_xlim(xlims)
 ax.set_ylim(ylims)
 
-plt.title('Spatial extrapolation to unseen site (ensemble median)', fontsize=13, pad=10)
-plt.ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+plt.title('Spatial extrapolation to unseen site (ensemble median)', fontsize=14, pad=10)
+plt.ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 plt.xlabel('Time, yr')
 plt.annotate(r'\textbf{a}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
 #plt.savefig('../../plots/AGU2022/spatial_extrapolation_'+str(location)+'.pdf')
@@ -219,31 +237,32 @@ plt.annotate(r'\textbf{a}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=
 #% make line plot for extrapolation to future climate
 # location = 14
 ax = plt.subplot(122)
+ax.minorticks_on()
 sb.despine()
 ds_time_ym['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=3)
-l1 = plt.legend(models, title='Models', frameon=False, ncol=2)
-ds_time_ym['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
+l1 = plt.legend(models_labels, title='Models', frameon=False, ncol=1)
+ds_time_ym['GPP'].sel(location=location).plot(ax=ax, c='k', lw=3, ls='--')
+
+plt.gca().set_prop_cycle(None) # reset color cycle
+ds_time_ym['GPP_hat'].sel(location=location, quantile=0.1).plot(hue='model', ax=ax, lw=2, ls='-.')
+plt.gca().set_prop_cycle(None) # reset color cycle
+ds_time_ym['GPP_hat'].sel(location=location, quantile=0.9).plot(hue='model', ax=ax, lw=2, ls='-.')
+plt.legend().remove()
 
 xlims = ax.get_xlim()
 ylims = ax.get_ylim()
 
-p1, = plt.plot([0,0], [1,1], c='k', lw=2, ls='--')
+p1, = plt.plot([0,0], [1,1], c='k', lw=3, ls='--')
+
+l2 = plt.legend([p1], ["Ground-\ntruth"], loc='center left', frameon=False) # this removes l1 from the axes.
+plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
 
 ax.set_xlim(xlims)
 ax.set_ylim(ylims)
 
-l2 = plt.legend([p1], ["Truth"], loc='lower right', frameon=False) # this removes l1 from the axes.
-plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
-
-plt.gca().set_prop_cycle(None) # reset color cycle
-ds_time_ym['GPP_hat'].sel(location=location, quantile=0.1).plot(hue='model', ax=ax, lw=2, ls='-.', alpha=.7)
-plt.gca().set_prop_cycle(None) # reset color cycle
-ds_time_ym['GPP_hat'].sel(location=location, quantile=0.9).plot(hue='model', ax=ax, lw=2, ls='-.', alpha=.7)
-plt.legend().remove()
-
 #plt.title('Temporal extrapolation to unseen "future" (median + 0.1 $\&$ 0.9 quantiles)', fontsize=15, pad=10)
-plt.title('Temporal extrapolation to unseen "future" (ensemble median)', fontsize=15, pad=10)
-plt.ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+plt.title('Temporal extrapolation to unseen "future"\n (median $\&$ 0.1/0.9 quantiles)', fontsize=14, pad=10)
+plt.ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 plt.xlabel('Time, yr')
 
 plt.annotate(r'\textbf{b}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
@@ -256,14 +275,14 @@ if save == True:
     os.system('mv '+plotfname+'-crop.pdf '+plotfname+'.pdf')
 
 #%% calculate CO2 sensitivity
+ds_CO2_ym_diff = ds_time_ym.sel(year=slice('2016','2100'))[['GPP_hat']] - ds_CO2_ym.sel(year=slice('2016','2100'))[['GPP_hat']]
+ds_CO2_ym_diff['GPP_hat'] = ds_CO2_ym_diff['GPP_hat'] - ds_CO2_ym_diff['GPP_hat'].isel(year=0)
 
-ds_CO2_ym_diff = ds_time_ym.isel(model=slice(6)).copy(deep=True)
-ds_CO2_ym_diff['model'] = models
-ds_CO2_ym_diff['GPP_hat'] = ds_time_ym.isel(model=slice(6))['GPP_hat'] - ds_CO2_ym.sel(year=slice('2015','2100'))['GPP_hat']
-ds_CO2_ym_diff['GPP'] = ds_time_ym.isel(model=slice(6))['GPP'] - ds_CO2_ym.sel(year=slice('2015','2100'))['GPP']
-ds_CO2_ym_diff['GPP'] = ds_CO2_ym_diff['GPP'] - ds_CO2_ym_diff['GPP'].isel(year=1)
-ds_CO2_ym_diff['GPP_hat'] = ds_CO2_ym_diff['GPP_hat'] - ds_CO2_ym_diff['GPP_hat'].isel(year=1)
+tmp = ds_time_ym.sel(year=slice('2016','2100'))[['GPP']] - ds_CO2_ym.sel(year=slice('2016','2100'))[['GPP']]
+ds_CO2_ym_diff['GPP'] = tmp['GPP'] - tmp['GPP'].isel(year=2)
 
+ds_CO2_ym_diff['co2'] = ds_time_ym.sel(year=slice('2016','2100'))['co2']
+ds_CO2_ym_diff['model'] = models_labels
 #%% prepare dataframes to plot CO2 sensitivity
 location = 1 # locaiton that has predictions from past to future
 df_models = ds_CO2_ym_diff[['GPP_hat', 'co2']].sel(location=location).to_dataframe()
@@ -271,22 +290,22 @@ df_obs = ds_CO2_ym_diff[['GPP', 'co2']].sel(location=location).to_dataframe()
 df_models = df_models.reset_index()
 df_models = df_models.rename({'GPP_hat': 'GPP'}, axis=1)
 df_obs = df_obs.reset_index()
-df_obs['model'] = 'truth'
+df_obs['model'] = 'Truth'
 df_obs['quantile'] = 0.5
 df = pd.concat([df_obs, df_models])
 
 #%% add black color in color palette
-ccycle = sb.color_palette()
-old_color = ccycle[6]
-ccycle[6] = 'k'
-sb.set_palette(ccycle)
+# ccycle = sb.color_palette()
+# old_color = ccycle[3]
+# ccycle[4] = 'k'
+sb.set_palette(colors+['k'])
 
 #%% prepare boxplot (quick and dirty)
 res = {}
 frames = {}
 for quantile in df['quantile'].unique():
-    for model in df['model'].unique():
-        if model == 'truth' and quantile != 0.5:
+    for model in models_labels+['Truth']:
+        if model == 'Truth' and quantile != 0.5:
             continue
         else:
             data = df[(df['model'] == model) & (df['quantile'] == quantile)].dropna()
@@ -310,27 +329,29 @@ g = sb.lmplot(
     x='co2', 
     y='GPP',
     hue='model',
-    hue_order=models+['truth'],
+    hue_order=models_labels+['Truth'],
     col='quantile',
-    col_order=[0.5,0.1,0.9],
+    col_wrap=2,
+    col_order=[0.5,0.9,0.1],
     data=df,
-    height=4,
-    aspect=0.8)
+    height=5,
+    aspect=0.9)
 
 #plt.legend(models, title='Models', frameon=False)
 
-g.set_axis_labels('Atmospheric CO$_2$, ppm', 'GPP, gC day$^{-1}$ m$^{-2}$')
+g.set_axis_labels('Atmospheric CO$_2$, ppm', '$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 #g.set_titles(['1', '2', '3'])
 #g.despine(left=True)
 
 titles = [
-    'Ensemble Median', 'Quantile: 0.1', 'Quantile: 0.9'
+    'Ensemble Median', 'Quantile: 0.9', 'Quantile: 0.1'
 ]
-identifier = ['a','b','c']
+identifier = ['a','d','c']
 for i, ax in enumerate(g.axes.flat):
-    ax.set_title(titles[i])
-    ax.annotate(r'\textbf{'+identifier[i]+'}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
+    ax.set_title(titles[i], y=1.0, pad=-15)
+    ax.annotate(r'\textbf{'+identifier[i]+'}', xy=(-.085, 1.05), xycoords='axes fraction', fontsize=20, fontweight="bold")
     ax.axhline(0.0, color='k', ls=':', lw=1.2, zorder=-1)
+    plt.minorticks_on()
     
 if save == True:
     plt.savefig(plotfname+'.pdf')
@@ -341,13 +362,20 @@ if save == True:
 
 #%% make CO2 sensitivity plot
 plotfname = plt_pth+'Fig-0X_CO2-sensitivity_part-02'
-g = sb.catplot(x='model', y='value', data=df2, order=models+['truth'], 
-               kind='point', hue='model', height=4, aspect=1, capsize=.4, scale=2, hue_order=models+['truth'])
-g.set_axis_labels('', 'GPP sensitivity to CO$_2$, gC yr$^{-1}$ m$^{-2}$ ppm$^{-1}$')
-g.refline(y=0)
-g.set_xticklabels(rotation=45)
+g = sb.catplot(y='model', x='value', data=df2, order=models_labels+['Truth'], 
+               kind='point', hue='model', height=5, aspect=1.1, capsize=.3, hue_order=models_labels+['Truth'], legend=False)
+g.set_axis_labels('GPP sensitivity to CO$_2$, gC yr$^{-1}$ m$^{-2}$ ppm$^{-1}$', '')
+g.refline(x=0, zorder=-1)
+#g.set_yticklabels(direction='in')
+
 for i, ax in enumerate(g.axes.flat):
-    ax.annotate(r'\textbf{d}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
+    ax.tick_params(axis="y", direction="in", pad=-15)
+    plt.setp(ax.get_yticklabels(), ha="left", bbox=dict(boxstyle="round", ec="white", fc="white", alpha=0.95))
+    plt.gca().tick_params(axis='y', which='minor', left=False)
+    plt.minorticks_on()
+    ax.set_title('CO$_2$ Sensitivity')
+    ax.set_xlim([-1.5,5.5])
+    ax.annotate(r'\textbf{b}', xy=(-.085, 1.05), xycoords='axes fraction', fontsize=20, fontweight="bold")
     
 if save == True:
     #plt.subplots_adjust(1)
@@ -372,13 +400,15 @@ ds_CO2_msc_mid = ds_CO2.sel(time=slice("2055","2060")).groupby('time.dayofyear')
 ds_CO2_msc_end = ds_CO2.sel(time=slice("2095","2100")).groupby('time.dayofyear').mean()
 
 #%% plot seasonal cycle with and without CO2 change
+#@todo: here make nice y-lims
 plotfname = plt_pth+'Fig-0X_mean-seasonal-cycle'
 location = 1
-fig = plt.figure(figsize=(14,8))
+fig = plt.figure(figsize=(14,9))
 ax = plt.subplot(321)
+plt.minorticks_on()
 sb.despine()
 ds_time_msc_start['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
-l1 = plt.legend(models, title='Models', frameon=False, ncol=1)
+l1 = plt.legend(models_labels, loc='upper left', title='Models', frameon=False, ncol=1)
 ds_time_msc_start['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 xlims_ax1 = ax.get_xlim()
@@ -389,11 +419,11 @@ p1, = plt.plot([0,0], [1,1], c='k', lw=2, ls='--')
 ax.set_xlim(xlims_ax1)
 ax.set_ylim(ylims_ax1)
 
-l2 = plt.legend([p1], ["Truth"], loc='lower center', frameon=False) # this removes l1 from the axes.
+l2 = plt.legend([p1], ["Ground-\ntruth"], loc='center right', frameon=False) # this removes l1 from the axes.
 plt.gca().add_artist(l1) # add l1 as a separate artist to the axes
 
-ax.set_title('Mean seasonal cycle into "future climate"', fontsize=15, pad=10)
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_title('Future predictions of mean seasonal cycle', fontsize=15, pad=10)
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('')
 ax.annotate('2015--2020',
             xy=(.975, .85), xycoords='axes fraction',
@@ -402,13 +432,14 @@ ax.annotate('2015--2020',
 ax.annotate(r'\textbf{a}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
 
 ax = plt.subplot(323)
+plt.minorticks_on()
 sb.despine()
 ds_time_msc_mid['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
 plt.legend('').remove()
 ds_time_msc_mid['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 ax.set_title('')
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('')
 
 xlims_ax2 = ax.get_xlim()
@@ -421,6 +452,7 @@ ax.annotate('2055--2060',
 ax.annotate(r'\textbf{b}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=20, fontweight="bold")
 
 ax = plt.subplot(325)
+plt.minorticks_on()
 sb.despine()
 ds_time_msc_end['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
 plt.legend('').remove()
@@ -428,7 +460,7 @@ ds_time_msc_end['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 #plt.title('Temporal extrapolation to unseen "future" (median + 0.1 $\&$ 0.9 quantiles)', fontsize=15, pad=10)
 ax.set_title('')
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('Day of the year')
 
 xlims_ax3 = ax.get_xlim()
@@ -442,14 +474,15 @@ ax.annotate(r'\textbf{c}', xy=(-.085, 1.1), xycoords='axes fraction', fontsize=2
 
 #% plot seasonal cycle withtout CO2 change
 ax = plt.subplot(322)
+plt.minorticks_on()
 sb.despine()
 ds_CO2_msc_start['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
 plt.legend('').remove()
 ds_CO2_msc_start['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 
-ax.set_title('Mean seasonal cycle into "future climate" with constant CO${_2}$', fontsize=15, pad=10)
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_title('Future predictions of mean seasonal cycle with constant CO${_2}$', fontsize=15, pad=10)
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('')
 ax.annotate('2015--2020',
             xy=(.975, .85), xycoords='axes fraction',
@@ -461,13 +494,14 @@ ax.set_xlim(xlims_ax1)
 ax.set_ylim(ylims_ax1)
 
 ax = plt.subplot(324)
+plt.minorticks_on()
 sb.despine()
 ds_CO2_msc_mid['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
 plt.legend('').remove()
 ds_CO2_msc_mid['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 ax.set_title('')
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('')
 
 ax.annotate('2055--2060',
@@ -480,6 +514,7 @@ ax.set_xlim(xlims_ax2)
 ax.set_ylim(ylims_ax2)
 
 ax = plt.subplot(326)
+plt.minorticks_on()
 sb.despine()
 ds_CO2_msc_end['GPP_hat'].sel(location=location, quantile=0.5).plot(hue='model', ax=ax, lw=2)
 plt.legend('').remove()
@@ -487,7 +522,7 @@ ds_CO2_msc_end['GPP'].sel(location=location).plot(ax=ax, c='k', lw=2, ls='--')
 
 #plt.title('Temporal extrapolation to unseen "future" (median + 0.1 $\&$ 0.9 quantiles)', fontsize=15, pad=10)
 ax.set_title('')
-ax.set_ylabel('GPP, gC day$^{-1}$ m$^{-2}$')
+ax.set_ylabel('$F_\mathrm{GPP}$, gC day$^{-1}$ m$^{-2}$')
 ax.set_xlabel('Day of the year')
 
 ax.annotate('2095--2100',
@@ -559,7 +594,7 @@ met_df = pd.melt(met_df, id_vars=['model', 'mode', 'location'], value_vars=['nse
 #%%
 plotfname = plt_pth+'Fig-02_spatial-temporal-extrapolation'
 df_plot = met_df
-df_plot['model'] = models * int((len(df_plot) / len(models)))
+df_plot['model'] = models_labels * int((len(df_plot) / len(models_labels)))
 df_plot['scale'] = df_plot['scale'].replace('_', '-', regex=True) # because of TeX
 
 g = sb.catplot(
@@ -570,12 +605,12 @@ g = sb.catplot(
     col_order=['val','space', 'time'],
     kind='box',
     data=df_plot,
-    height=4,
+    height=5,
     aspect=0.8,
     whis=100000)
 
 sb.move_legend(g, "lower left", bbox_to_anchor=(.1, .2), frameon=True, 
-               fancybox=False, edgecolor='k')
+               fancybox=False, edgecolor='k', title='Models')
 #plt.legend(models, title='Models', frameon=False)
 
 g.set_axis_labels('', 'Normalized NSE [-]')
@@ -595,7 +630,7 @@ for i, ax in enumerate(g.axes.flat):
     ax.axhline(0.5, color='k', ls=':', lw=1.2, zorder=-1)
     
 if save == True:
-    #plt.tight_layout()
+    plt.tight_layout()
     plt.savefig(plotfname+'.pdf')
 
     ## crop figure
