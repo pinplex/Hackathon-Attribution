@@ -1,9 +1,8 @@
+DISCLAIMER: We are working on a clean-up version of the code to be published soon here.
 
 # Attribution hackathon
 
 This repository contains code and data for the attribution hackathon.
-
-[This pad](https://pad.gwdg.de/YoDSoLPUQmaAgNcuw_vVAA#) contains more discussion and ideas.
 
 # Getting started
 
